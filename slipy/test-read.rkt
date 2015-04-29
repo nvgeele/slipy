@@ -1,11 +1,19 @@
 #lang racket
 
 (require (rename-in "read.rkt"
-                    (read slip-read)))
+                    (read slip-read))
+         json)
 
 (define helper (compose (lambda _ (displayln "-----"))
-                        pretty-print slip-read read open-input-string))
+                        (lambda (hash)
+                          (pretty-print hash)
+                          (pretty-print (jsexpr->string hash)))
+                        (lambda (input)
+                          (slip-read input #:json #t))
+                        read
+                        open-input-string))
 
+(helper "(begin (lambda (x y) (define z (* x y (+ x y)))))")
 #;(helper "((+ 1 2)
   (* 3 3)
 (append '(1 2 3) (append '(4 5 6) '(7 8 9))))")
@@ -17,9 +25,11 @@
         [x 1])
     (* x y (+ z (set! z 1))))
   (* x y (+ z 1)))")
-(helper "(begin
+#;(helper "(begin
   (+ (define x (* 1 (* 2 3)))
-     (define y (+ 1 (+ 2 3))))
+     (define y (+ 1 (+ 2 3)))
+     'a
+     (car '(1 2 '(3 #t))))
   (+ x y (* x y)))")
 #;(helper "(begin
   (let ()
