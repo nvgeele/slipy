@@ -4,7 +4,8 @@ from subprocess import Popen, PIPE
 def _open_reader_process():
     file_path = os.path.dirname(os.path.realpath(__file__))
     reader_path = os.path.join(file_path, "read.rkt")
-    cmd = "racket %s" % (reader_path)
+    cmd = "racket -l racket/base -t %s -e \"(read-loop)\"" % (reader_path)
+    print cmd
     process = Popen(cmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     return process
 
