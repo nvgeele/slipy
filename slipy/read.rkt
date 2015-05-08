@@ -49,6 +49,30 @@
 ;;        |  <aexp>
 ;;        |  <cexp>
 
+;; JSON Output specifics:
+
+;; <prog> ::= {vars: [<var>], exps: [<exp>]}
+
+;; <var> ::= <string>
+
+;; <exp> ::= {type: "let", var: <var>, val: <cexp>, body: <exp>}
+;;        |  {} ;; voor andere let
+;;        |  <aexp>
+;;        |  <cexp>
+
+;; <cexp> ::= {type: "if", test: <aexp>, consequent: <exp>, alternative: <exp>}
+;;         |  {type: "set", target: <var>, val: <aexp>}
+;;         |  {type: "apl", operator: <aexp>, operands: [<aexp>]}
+
+;; <aexp> ::= {type: "lambda", vars: [<vars>], body: <prog>}
+;;         |  {type: "quoted-list", val: [<aexp>]}
+;;         |  {type: "symbol", val: <string>}
+;;         |  {type: "number", val: <number>}
+;;         |  {type: "bool", val: <bool>}
+;;         |  {type: "string", val: <string>}
+;;         |  {type: "char", val: <char>}
+;;         |  {type: "var", val: <var>}
+
 (require (rename-in racket/base
                     (read rkt-read)
                     (primitive? rkt-primitive?))
