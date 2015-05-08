@@ -146,6 +146,8 @@
 
 
     [`(if ,exp1 ,exp2 ,exp3)
+     ;; TODO: Local frames for consequent and alternative
+     (error "Local frames for consequent and alternative")
      (normalize-name exp1 (lambda (t)
                             (k `(if ,t ,(normalize-term exp2)
                                     ,(normalize-term exp3)))))]
@@ -155,8 +157,10 @@
                            (k `(set! ,v ,t))))]
 
     [`(define (,f . ,params) ,body)
-     (normalize `(define ,f (lambda ,params ,body)) k)
-     #;(error "Function definition in normalize")]
+     (let ([lambda (normalize `(lambda ,params ,body)
+                              identity)])
+       (add-decl! f)
+       (k `(set! ,f ,lambda)))]
 
     [`(define ,v ,exp)
      (add-decl! v)
@@ -299,7 +303,8 @@
            'val aexp)]
     [(? symbol?)
      (hash 'type "var"
-           'val (symbol->string aexp))]))
+           'val (symbol->string aexp))]
+    [else (error "Malformed aexp")]))
 
 (define (cexp->json cexp)
   (match cexp
@@ -315,7 +320,8 @@
     [`(,op . ,aexps)
      (hash 'type "apl"
            'operator (aexp->json op)
-           'operands (map aexp->json aexps))]))
+           'operands (map aexp->json aexps))]
+    [else (error "Malformed cexp")]))
 
 (define (exp->json exp)
   (match exp
