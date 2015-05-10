@@ -13,12 +13,13 @@
                         read
                         open-input-string))
 
+(helper "((+ 1 (call/cc (lambda (cont) (cont 2)))))")
 ;;(helper "( ((lambda (x) x) 42) )")
 ;;(helper "( ((lambda (x) (+ x x)) 42))")
 ;;(helper "( ((lambda (x y) ((lambda (z) (- x y z)) 10)) 32 24) )")
 ;;(helper "((let ([b 1]) (define a 1)))")
 ;;(helper "((let ([a(if #t (+ 1 (+ 2 3)) (- 1 (- 2 3)))]) (+ a a)))")
-(helper "((define (id x) x) (+ (id 1) (id 2)))")
+;;(helper "((define (id x) x) (+ (id 1) (id 2)))")
 ;;(helper "(begin (lambda (x y) (define z (* x y (+ x y)))))")
 #;(helper "((+ 1 2)
   (* 3 3)

@@ -1,14 +1,17 @@
 from slipy.parse import parse
 from slipy.exceptions import *
-from slipy.interpreter import interpret_program
+from slipy.interpreter import interpret_with_env, initialize_global_env
 from slipy.read import read_string
 import os # For REPL
+import sys # Temporary
 import traceback # For temporary REPL
 
 
 def main(argv):
+    # TODO: Make let-var env merging possible for REPL
     #stdin_fd = 0
     #fd = os.fdopen(stdin_fd)
+    env = initialize_global_env()
     while True:
         str = raw_input(">>> ")
         #str = fd.readline()
@@ -18,8 +21,9 @@ def main(argv):
         ast = parse(data)
         #print "AST:"
         #print ast
+        sys.stdout.write("AST: %s\n" % ast)
         try:
-            interpret_program(ast)
+            interpret_with_env(ast, env)
         except EvaluationFinished as e:
             print e.val
         except SlipException as e:

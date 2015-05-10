@@ -1,3 +1,4 @@
+import time
 from slipy.values import *
 
 
@@ -5,14 +6,23 @@ native_dict = {}
 
 
 # TODO: fix with type checking etc
-def declare_native(name):
+def declare_native(name, simple=True):
     def wrapper(func):
+        def inner(args, env, cont):
+            if simple:
+                from slipy.interpreter import return_value_direct
+                result = func(args)
+                return return_value_direct(result, env, cont)
+            else:
+                return func(args, env, cont)
+
         sym = W_Symbol.from_string(name)
-        native = W_NativeFunction(func)
+        native = W_NativeFunction(inner)
         native_dict[sym] = native
-        return func
+        return inner
 
     return wrapper
+
 
 @declare_native("+")
 def plus(args):
@@ -39,3 +49,15 @@ def minus(args):
             val -= arg.value()
 
     return W_Number(val)
+
+
+@declare_native("call/cc", simple=False)
+def callcc(args, env, cont):
+    assert isinstance(args[0], W_Callable)
+    return args[0].call([W_Continuation(cont)], env, cont)
+
+
+@declare_native("time")
+def slip_time(args):
+    assert len(args) == 0
+    return W_Number(time.time())

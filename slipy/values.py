@@ -29,13 +29,18 @@ class W_Pair(W_SlipObject):
     def cdr(self):
         return self._cdr
 
+    def __str__(self):
+        # TODO: fixme
+        return "#<pair>"
+
 
 class W_Vector(W_SlipObject):
     pass
 
 
 class W_Null(W_SlipObject):
-    pass
+    def __str__(self):
+        return "'()"
 
 
 class W_Number(W_SlipObject):
@@ -92,9 +97,10 @@ class W_NativeFunction(W_Callable):
         self._func = func
 
     def call(self, args, env, cont):
-        from slipy.interpreter import return_value_direct
-        val = self._func(args)
-        return return_value_direct(val, env, cont)
+        return self._func(args, env, cont)
+
+    def __str__(self):
+        return "#<native>"
 
 
 class W_Closure(W_Callable):
@@ -111,6 +117,22 @@ class W_Closure(W_Callable):
         for sym, val in zip(self._args, args):
             new_env.add_var(sym, val)
         return self._body, new_env, RestoreEnvContinuation(cont, env)
+
+    def __str__(self):
+        return "#<closure>"
+
+
+class W_Continuation(W_Callable):
+    def __init__(self, cont):
+        self._cont = cont
+
+    def call(self, args, env, cont):
+        from slipy.interpreter import return_value_direct
+        # TODO: deal with args
+        return return_value_direct(args[0], env, self._cont)
+
+    def __str__(self):
+        return "#<continuation>"
 
 
 class W_Undefined(W_SlipObject):
