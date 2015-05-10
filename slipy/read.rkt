@@ -43,6 +43,7 @@
 ;; <cexp> ::= (<aexp> <aexp> ...)
 ;;         |  (if <aexp> <exp> <exp>)
 ;;         |  (set! <var> <aexp>)
+;;         |  <aexp>
 ;;
 ;; <exp> ::= (let ([<var> <cexp>]) <dec> ... <exp>)
 ;;        |  (let () <dec> ... <exp>)
@@ -56,15 +57,19 @@
 ;; <var> ::= <string>
 
 ;; <exp> ::= {type: "let", var: <var>, val: <cexp>, body: <exp>}
-;;        |  {} ;; voor andere let
+;;        |  <var-let>
 ;;        |  <aexp>
 ;;        |  <cexp>
+
+;; <var-let> ::= {type: "var-let", vars: [<var>], body: <exp>}
 
 ;; <cexp> ::= {type: "if", test: <aexp>, consequent: <exp>, alternative: <exp>}
 ;;         |  {type: "set", target: <var>, val: <aexp>}
 ;;         |  {type: "apl", operator: <aexp>, operands: [<aexp>]}
+;;         |  <aexp>
 
-;; <aexp> ::= {type: "lambda", vars: [<vars>], body: <prog>}
+;; TODO: Fix grammar voor quoted-list
+;; <aexp> ::= {type: "lambda", vars: [<vars>], body: <var-let>}
 ;;         |  {type: "quoted-list", val: [<aexp>]}
 ;;         |  {type: "symbol", val: <string>}
 ;;         |  {type: "number", val: <number>}
@@ -79,6 +84,8 @@
          json)
 
 (provide read read-loop)
+
+;; TODO: What about reading cons cells?
 
 ;;
 ;; Helper functions
@@ -140,6 +147,7 @@
        ,let)))
 
 ;; TODO: test IFs
+;; TODO: test (lambda x x)
 ;; TODO: output JSON
 ;; TODO: optimize excessive frames for define/set!
 (define (normalize exp k)
@@ -166,12 +174,13 @@
              ,nt)))]
 
     [`(let ,bindings ,body)
+     ;; TODO: body with multiple exprs
      (normalize-let bindings body k)]
 
 
     [`(if ,exp1 ,exp2 ,exp3)
      ;; TODO: Local frames for consequent and alternative
-     (error "Local frames for consequent and alternative")
+     ;;(error "Local frames for consequent and alternative")
      (normalize-name exp1 (lambda (t)
                             (k `(if ,t ,(normalize-term exp2)
                                     ,(normalize-term exp3)))))]
@@ -181,6 +190,7 @@
                            (k `(set! ,v ,t))))]
 
     [`(define (,f . ,params) ,body)
+     ;; TODO: body with multiple exprs
      (let ([lambda (normalize `(lambda ,params ,body)
                               identity)])
        (add-decl! f)
@@ -265,7 +275,8 @@
     (match body
       ['()
        (hash 'vars (map symbol->string vars)
-             'exps exps)]
+             'body (car (reverse exps))
+             'type "var-let")]
       [(cons `(define ,var '()) rest)
        (helper (cons var vars)
                exps
@@ -303,6 +314,19 @@
                     'val (symbol->string e))])
            (list->json rest))]))
 
+(define (var-let->json body)
+  ;; TODO: is de body wel correct
+  (define (helper exp vars)
+    (match exp
+      [(cons `(define ,var '()) rest)
+       (helper rest (cons var vars))]
+      [(cons exp '())
+       (values exp vars)]))
+  (let-values ([(exp vars) (helper body '())])
+    (hash 'type "var-let"
+          'vars (map symbol->string vars)
+          'body (exp->json exp))))
+
 (define (aexp->json aexp)
   (match aexp
     [`(lambda ,vars . ,body)
@@ -328,10 +352,16 @@
     [(? symbol?)
      (hash 'type "var"
            'val (symbol->string aexp))]
-    [else (error "Malformed aexp")]))
+    [else (error (~a "Malformed aexp: " aexp))]))
 
+;; TODO: (let ([a 1]) a) --> cexp kan ook aexp zijn (?)
 (define (cexp->json cexp)
   (match cexp
+    ;; If lambda is an operator in an application, well, though break
+    ;; In SLIP this is also the case.
+    ;; TODO: Maybe put lambdas in evaluator as macro/native?
+    [(? aexp?)
+     (aexp->json cexp)]
     [`(if ,aexp ,exp1 ,exp2)
      (hash 'type "if"
            'test (aexp->json aexp)
@@ -345,13 +375,12 @@
      (hash 'type "apl"
            'operator (aexp->json op)
            'operands (map aexp->json aexps))]
-    [else (error "Malformed cexp")]))
+    [else (error (~a "Malformed cexp: " cexp))]))
 
 (define (exp->json exp)
   (match exp
-    [`(let () ,body)
-     ;; TODO: implement this
-     (error "Vergeet me nietje")]
+    [`(let () . ,body)
+     (var-let->json body)]
     [`(let ([,var ,cexp]) ,body)
      (hash 'type "let"
            'var (symbol->string var)
@@ -361,7 +390,7 @@
      (aexp->json exp)]
     [(? cexp?)
      (cexp->json exp)]
-    [else (error "Malformed expression")]))
+    [else (error (~a "Malformed expression: " exp))]))
 
 ;; TODO: check all orders of exp lists
 (define (prog->json prog)
@@ -369,7 +398,7 @@
     (match prog
       ['()
        (hash 'vars (map symbol->string vars)
-             'exps exps)]
+             'exps (reverse exps))]
       [(cons `(define ,var '()) rest)
        (helper (cons var vars) exps rest)]
       [(cons exp rest)
@@ -382,6 +411,7 @@
 
 (define (read exp #:json [json #f])
   (let ([res (normalize-program exp)])
+    ;;(displayln res)
     (if json
         (prog->json res)
         res)))
