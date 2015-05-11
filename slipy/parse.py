@@ -43,7 +43,6 @@ def _parse_dict(dict):
 
     if type == 'lambda':
         # TODO: Support lambda's like (lambda x x)
-        # TODO: Support for multiple exprs in body
         args = map(W_Symbol.from_string, dict['vars'])
         body = _parse_dict(dict['body'])
         return Lambda(args, body)
@@ -85,7 +84,7 @@ def _parse_dict(dict):
         return Let(sym, val, body)
     elif type == 'var-let':
         vars = map(W_Symbol.from_string, dict['vars'])
-        body = _parse_dict(dict['body'])
+        body = map(_parse_dict, dict['body'])
         return VarLet(vars, body)
     else:
         # TODO: remove once we're finished
@@ -93,11 +92,9 @@ def _parse_dict(dict):
 
 
 def _parse_program(program):
-    # TODO: do something with declarations
-    # TODO: Fix for multiple exps
     vars = map(W_Symbol.from_string, program['vars'])
     exprs = map(_parse_dict, program['exps'])
-    return VarLet(vars, Sequence(exprs))
+    return VarLet(vars, exprs)
 
 
 def parse(data):

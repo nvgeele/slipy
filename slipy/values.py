@@ -140,12 +140,18 @@ class W_Undefined(W_SlipObject):
         return "#<undefined>"
 
 
+class W_Void(W_SlipObject):
+    def __str__(self):
+        return "#<void>"
+
+
 # Default values
 
 w_empty = W_Null()
 w_true = W_Boolean(True)
 w_false = W_Boolean(False)
 w_undefined = W_Undefined()
+w_void = W_Void()
 
 
 def is_true(val):

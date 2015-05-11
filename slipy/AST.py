@@ -120,9 +120,9 @@ class Sequence(AST):
 
 
 class VarLet(AST):
-    def __init__(self, vars, body):
+    def __init__(self, vars, exprs):
         self._vars = vars
-        self._body = body
+        self._body = Sequence(exprs)
 
     def eval(self, env, cont):
         new_env = Env(previous=env)
@@ -132,8 +132,8 @@ class VarLet(AST):
         return self._body, new_env, cont
 
     def __str__(self):
-        decls = " ".join(["[%s #<undefined>]" % str(var) for var in self._vars])
-        return "(let (%s) %s)" % (decls, str(self._body))
+        decls = " ".join(map(str, self._vars))
+        return "(let-var (%s) %s)" % (decls, str(self._body))
 
 
 class VarRef(AST):

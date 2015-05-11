@@ -1,3 +1,4 @@
+import sys # For display
 import time
 from slipy.values import *
 
@@ -61,3 +62,13 @@ def callcc(args, env, cont):
 def slip_time(args):
     assert len(args) == 0
     return W_Number(time.time())
+
+@declare_native("display")
+def display(args):
+    sys.stdout.write(str(args[0]))
+    return w_void
+
+@declare_native("displayln")
+def display(args):
+    print str(args[0])
+    return w_void

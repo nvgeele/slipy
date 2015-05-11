@@ -152,16 +152,16 @@
 ;; TODO: optimize excessive frames for define/set!
 (define (normalize exp k)
   (match exp
-    [`(lambda ,params ,body)
+    [`(lambda ,params . ,body)
      ;; TODO: body with multiple exprs
      (push-scope!)
-     (let* ([nt (normalize-term body)]
+     (let* ([nt (map normalize-term body)]
             [vars decls])
        (pop-scope!)
        (k `(lambda ,params
              ,@(for/list ([var vars])
                  `(define ,var '()))
-             ,nt)))]
+             ,@nt)))]
 
     [`(let () ,exp)
      (push-scope!)
@@ -189,9 +189,9 @@
      (normalize-name exp (lambda (t)
                            (k `(set! ,v ,t))))]
 
-    [`(define (,f . ,params) ,body)
+    [`(define (,f . ,params) . ,body)
      ;; TODO: body with multiple exprs
-     (let ([lambda (normalize `(lambda ,params ,body)
+     (let ([lambda (normalize `(lambda ,params ,@body)
                               identity)])
        (add-decl! f)
        (k `(set! ,f ,lambda)))]
@@ -271,23 +271,9 @@
 
 (define (lambda->json vars body)
   ;; TODO: multiple exprs blabla
-  (define (helper vars exps body)
-    (match body
-      ['()
-       (hash 'vars (map symbol->string vars)
-             'body (car (reverse exps))
-             'type "var-let")]
-      [(cons `(define ,var '()) rest)
-       (helper (cons var vars)
-               exps
-               rest)]
-      [(cons exp rest)
-       (helper vars
-               (cons (exp->json exp) exps)
-               rest)]))
   (hash 'type "lambda"
         'vars (map symbol->string vars)
-        'body (helper '() '() body)))
+        'body (var-let->json body)))
 
 (define (list->json list)
   (match list
@@ -316,16 +302,18 @@
 
 (define (var-let->json body)
   ;; TODO: is de body wel correct
-  (define (helper exp vars)
+  (define (helper exp vars exps)
     (match exp
       [(cons `(define ,var '()) rest)
        (helper rest (cons var vars))]
       [(cons exp '())
-       (values exp vars)]))
-  (let-values ([(exp vars) (helper body '())])
+       (values (reverse (cons (exp->json exp) exps)) vars)]
+      [(cons exp rest)
+       (helper rest vars (cons (exp->json exp) exps))]))
+  (let-values ([(exps vars) (helper body '() '())])
     (hash 'type "var-let"
           'vars (map symbol->string vars)
-          'body (exp->json exp))))
+          'body exps)))
 
 (define (aexp->json aexp)
   (match aexp
@@ -411,7 +399,7 @@
 
 (define (read exp #:json [json #f])
   (let ([res (normalize-program exp)])
-    ;;(displayln res)
+    ;;(pretty-print res)
     (if json
         (prog->json res)
         res)))

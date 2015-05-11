@@ -7,13 +7,15 @@
 (define helper (compose (lambda _ (displayln "-----"))
                         (lambda (hash)
                           (pretty-print hash)
-                          (pretty-print (jsexpr->string hash)))
+                          ;;(pretty-print (jsexpr->string hash))
+                          (void))
                         (lambda (input)
                           (slip-read input #:json #t))
                         read
                         open-input-string))
 
-(helper "((+ 1 (call/cc (lambda (cont) (cont 2)))))")
+(helper "((define (f return) (return 2) 3) (display (f (lambda (x) x))) (display (call/cc f)))")
+;;(helper "((+ 1 (call/cc (lambda (cont) (cont 2)))))")
 ;;(helper "( ((lambda (x) x) 42) )")
 ;;(helper "( ((lambda (x) (+ x x)) 42))")
 ;;(helper "( ((lambda (x y) ((lambda (z) (- x y z)) 10)) 32 24) )")
