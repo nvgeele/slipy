@@ -31,7 +31,7 @@ class W_Pair(W_SlipObject):
 
     def __str__(self):
         # TODO: fixme
-        return "#<pair>"
+        return "(cons %s %s)" % (self._car, self._cdr)
 
 
 class W_Vector(W_SlipObject):

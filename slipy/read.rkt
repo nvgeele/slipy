@@ -153,7 +153,6 @@
 (define (normalize exp k)
   (match exp
     [`(lambda ,params . ,body)
-     ;; TODO: body with multiple exprs
      (push-scope!)
      (let* ([nt (map normalize-term body)]
             [vars decls])
@@ -190,7 +189,6 @@
                            (k `(set! ,v ,t))))]
 
     [`(define (,f . ,params) . ,body)
-     ;; TODO: body with multiple exprs
      (let ([lambda (normalize `(lambda ,params ,@body)
                               identity)])
        (add-decl! f)
@@ -270,7 +268,6 @@
     [else #f]))
 
 (define (lambda->json vars body)
-  ;; TODO: multiple exprs blabla
   (hash 'type "lambda"
         'vars (map symbol->string vars)
         'body (var-let->json body)))
@@ -342,7 +339,6 @@
            'val (symbol->string aexp))]
     [else (error (~a "Malformed aexp: " aexp))]))
 
-;; TODO: (let ([a 1]) a) --> cexp kan ook aexp zijn (?)
 (define (cexp->json cexp)
   (match cexp
     ;; If lambda is an operator in an application, well, though break

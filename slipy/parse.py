@@ -9,7 +9,7 @@ from slipy.values import *
 
 def _parse_list(values):
     def get_value(val):
-        if list(val):
+        if isinstance(val, list):
             return helper(val)
         else:
             type = val['type']
@@ -32,7 +32,7 @@ def _parse_list(values):
         if not vals:
             return w_empty
         car = get_value(vals[0])
-        cdr = helper[1:]
+        cdr = helper(vals[1:])
         return W_Pair(car, cdr)
 
     return helper(values)
@@ -47,7 +47,8 @@ def _parse_dict(dict):
         body = _parse_dict(dict['body'])
         return Lambda(args, body)
     elif type == 'quoted-list':
-        return _parse_list(dict['val'])
+        # TODO: is list part of AST or a value that can be mutated?
+        return Quote(_parse_list(dict['val']))
     elif type == 'symbol':
         obj = W_Symbol.from_string(dict['val'])
         return Quote(obj)

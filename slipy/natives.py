@@ -72,3 +72,22 @@ def display(args):
 def display(args):
     print str(args[0])
     return w_void
+
+
+@declare_native("cons")
+def cons(args):
+    assert len(args) == 2
+    return W_Pair(args[0], args[1])
+
+@declare_native("car")
+def car(args):
+    assert len(args) == 1
+    assert isinstance(args[0], W_Pair)
+    return args[0].car()
+
+
+@declare_native("cdr")
+def cdr(args):
+    assert len(args) == 1
+    assert isinstance(args[0], W_Pair)
+    return args[0].cdr()
