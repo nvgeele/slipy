@@ -156,3 +156,14 @@ w_void = W_Void()
 
 def is_true(val):
     return not(isinstance(val, W_Boolean) and val is w_false)
+
+
+def from_list(obj):
+    list = []
+    current = obj
+    while isinstance(current, W_Pair):
+        list.append(current.car())
+        current = current.cdr()
+    if not current is w_empty:
+        raise SlipException("Malformed list")
+    return list

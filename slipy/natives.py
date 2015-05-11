@@ -50,6 +50,17 @@ def minus(args):
     return W_Number(accum)
 
 
+@declare_native("apply", simple=False, arguments=[W_Callable, W_Pair])
+def apply(args, env, cont):
+    fn = args[0]
+    actual_args = None
+    try:
+        actual_args = from_list(args[1])
+    except SlipException:
+        raise SlipException("apply: expected list")
+    return fn.call(actual_args, env, cont)
+
+
 @declare_native("call/cc", simple=False, arguments=[W_Callable])
 def callcc(args, env, cont):
     return args[0].call([W_Continuation(cont)], env, cont)
