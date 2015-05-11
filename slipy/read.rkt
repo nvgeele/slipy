@@ -321,7 +321,7 @@
          (hash 'type "quoted-list"
                'val (list->json x))
          (hash 'type "symbol"
-               'val x))]
+               'val (symbol->string x)))]
     [(? number?)
      (hash 'type "number"
            'val aexp)]

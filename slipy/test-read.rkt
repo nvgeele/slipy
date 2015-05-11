@@ -14,7 +14,9 @@
                         read
                         open-input-string))
 
-(helper "((define (f return) (return 2) 3) (display (f (lambda (x) x))) (display (call/cc f)))")
+(helper "('a)")
+;;(helper "((+ 1 'a))")
+;;(helper "((define (f return) (return 2) 3) (display (f (lambda (x) x))) (display (call/cc f)))")
 ;;(helper "((+ 1 (call/cc (lambda (cont) (cont 2)))))")
 ;;(helper "( ((lambda (x) x) 42) )")
 ;;(helper "( ((lambda (x) (+ x x)) 42))")
