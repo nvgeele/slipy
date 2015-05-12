@@ -86,6 +86,9 @@ class W_String(W_SlipObject):
     def __init__(self, str):
         self._str = str
 
+    def __str__(self):
+        return self._str
+
 
 class W_Callable(W_SlipObject):
     def call(self, args, env, cont):
@@ -116,7 +119,7 @@ class W_Closure(W_Callable):
         new_env = Env(previous=self._env)
         for sym, val in zip(self._args, args):
             new_env.add_var(sym, val)
-        return self._body, new_env, RestoreEnvContinuation(cont, env)
+        return self._body, new_env, cont
 
     def __str__(self):
         return "#<closure>"

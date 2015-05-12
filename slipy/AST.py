@@ -81,7 +81,7 @@ class Let(AST):
         self._body = body
 
     def eval(self, env, cont):
-        cont = LetContinuation(cont, self._sym, self._body)
+        cont = LetContinuation(cont, self._sym, self._body, env)
         return self._val, env, cont
 
     def __str__(self):
@@ -111,8 +111,11 @@ class Sequence(AST):
         self._exprs = exprs
 
     def eval(self, env, cont):
-        cont = SequenceContinuation(self._exprs[1:], cont)
-        return self._exprs[0], env, cont
+        if len(self._exprs) == 1:
+            return self._exprs[0], env, cont
+        else:
+            cont = SequenceContinuation(self._exprs[1:], env, cont)
+            return self._exprs[0], env, cont
 
     def __str__(self):
         exprs = " ".join(map(str, self._exprs))
@@ -122,18 +125,22 @@ class Sequence(AST):
 class VarLet(AST):
     def __init__(self, vars, exprs):
         self._vars = vars
-        self._body = Sequence(exprs)
+        self._body = exprs
 
     def eval(self, env, cont):
         new_env = Env(previous=env)
         for var in self._vars:
             new_env.add_var(var, w_undefined)
-        cont = RestoreEnvContinuation(cont, env)
-        return self._body, new_env, cont
+        if len(self._body) == 1:
+            return self._body[0], new_env, cont
+        else:
+            cont = SequenceContinuation(self._body[1:], new_env, cont)
+            return self._body[0], new_env, cont
 
     def __str__(self):
         decls = " ".join(map(str, self._vars))
-        return "(let-var (%s) %s)" % (decls, str(self._body))
+        exprs = " ".join(map(str, self._body))
+        return "(let-var (%s) %s)" % (decls, exprs)
 
 
 class VarRef(AST):
@@ -144,7 +151,10 @@ class VarRef(AST):
 
     def eval_simple(self, env):
         cell = env.get_var(self._sym)
-        return cell.get_value()
+        val = cell.get_value()
+        if val is w_undefined:
+            raise SlipException("Variable referenced before definition")
+        return val
 
     def __str__(self):
         return str(self._sym)
