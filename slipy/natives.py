@@ -44,10 +44,30 @@ def plus(args):
 
 @declare_native("-", arguments=W_Number)
 def minus(args):
-    accum = 0
-    for arg in args:
+    if len(args) == 1:
+        return W_Number(-args[0].value())
+    accum = args[0].value()
+    for arg in args[1:]:
         accum -= arg.value()
     return W_Number(accum)
+
+
+@declare_native("*", arguments=W_Number)
+def multiply(args):
+    accum = 1
+    for arg in args:
+        accum *= arg.value()
+    return W_Number(accum)
+
+
+@declare_native("=", arguments=W_Number)
+def num_equal(args):
+    assert len(args) > 1
+    val = args[0].value()
+    for arg in args[1:]:
+        if arg.value() != val:
+            return w_false
+    return w_true
 
 
 @declare_native("apply", simple=False, arguments=[W_Callable, W_Pair])
