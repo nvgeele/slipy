@@ -146,9 +146,7 @@
            `(define ,var '()))
        ,let)))
 
-;; TODO: test IFs
 ;; TODO: test (lambda x x)
-;; TODO: output JSON
 ;; TODO: optimize excessive frames for define/set!
 (define (normalize exp k)
   (match exp
@@ -178,11 +176,35 @@
 
 
     [`(if ,exp1 ,exp2 ,exp3)
-     ;; TODO: Local frames for consequent and alternative
-     ;;(error "Local frames for consequent and alternative")
-     (normalize-name exp1 (lambda (t)
-                            (k `(if ,t ,(normalize-term exp2)
-                                    ,(normalize-term exp3)))))]
+     ;; TODO: Improve this horrible code
+     (let-values ([(con vars1)
+                   (begin
+                     (push-scope!)
+                     (let ([e (normalize-term exp2)]
+                           [vars decls])
+                       (pop-scope!)
+                       (values e vars)))]
+                  [(alt vars2)
+                   (begin
+                     (push-scope!)
+                     (let ([e (normalize-term exp3)]
+                           [vars decls])
+                       (pop-scope!)
+                       (values e vars)))])
+       (normalize-name exp1 (lambda (t)
+                              (k `(if ,t
+                                      ,(if (= (length vars1) 0)
+                                           con
+                                           `(let ()
+                                              ,@(for/list ([var vars1])
+                                                  `(define ,var '()))
+                                              ,con))
+                                      ,(if (= (length vars2) 0)
+                                           alt
+                                           `(let ()
+                                              ,@(for/list ([var vars2])
+                                                  `(define ,var '()))
+                                              ,alt)))))))]
 
     [`(set! ,v ,exp)
      (normalize-name exp (lambda (t)
@@ -302,7 +324,7 @@
   (define (helper exp vars exps)
     (match exp
       [(cons `(define ,var '()) rest)
-       (helper rest (cons var vars))]
+       (helper rest (cons var vars) exps)]
       [(cons exp '())
        (values (reverse (cons (exp->json exp) exps)) vars)]
       [(cons exp rest)
