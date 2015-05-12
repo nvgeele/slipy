@@ -113,7 +113,7 @@ class W_Closure(W_Callable):
         # TODO: stuff like len calls could be optimized maybe?
         if len(args) != len(self._args):
             raise SlipException("Incorrect length of argument list")
-        new_env = Env(previous=env)
+        new_env = Env(previous=self._env)
         for sym, val in zip(self._args, args):
             new_env.add_var(sym, val)
         return self._body, new_env, RestoreEnvContinuation(cont, env)
