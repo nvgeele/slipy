@@ -36,3 +36,7 @@ class Env(object):
             raise Exception("Can not overwrite binding")
         c = Cell(val)
         self._bindings[id] = c
+
+    def __str__(self):
+        keys = " ".join(map(str, self._bindings.keys()))
+        return "#<Env {%s} prev=%s>" % (keys, self._previous)
