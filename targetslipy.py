@@ -1,7 +1,7 @@
-from slipy.parse import parse
+from slipy.parse import parse_ast
 from slipy.exceptions import *
 from slipy.interpreter import interpret_with_env, initialize_global_env
-from slipy.read import read_string
+from slipy.read import expand_string
 import os # For REPL
 import sys # Temporary
 import traceback # For temporary REPL
@@ -15,10 +15,10 @@ def main(argv):
     while True:
         str = raw_input(">>> ")
         #str = fd.readline()
-        data = read_string(str)
+        data = expand_string(str)
         #print "Data: "
         #print data
-        ast = parse(data)
+        ast = parse_ast(data)
         #print "AST:"
         #print ast
         sys.stdout.write("AST: %s\n" % ast)

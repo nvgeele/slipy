@@ -27,6 +27,10 @@
 ;;
 
 (helper2 "(if #t 1 2)")
+(helper2 "a")
+(helper2 "1")
+(helper2 "'a")
+(helper2 "'(1 2 3)")
 
 ;;
 ;; "Tests" for slip-expand

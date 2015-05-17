@@ -1,5 +1,8 @@
 import sys # For display
 import time
+from slipy.exceptions import EvaluationFinished
+from slipy.parse import parse_data, parse_ast
+from slipy.read import read_string, expand_string
 from slipy.values import *
 
 
@@ -121,3 +124,29 @@ def cdr(args):
     assert len(args) == 1
     assert isinstance(args[0], W_Pair)
     return args[0].cdr()
+
+
+@declare_native("read")
+def read(args):
+    # TODO: multiline input
+    # TODO: no more raw input
+    # TODO: read string
+    assert len(args) == 0
+    input = raw_input()
+    data = read_string(input)
+    return parse_data(data)
+
+
+@declare_native("eval", arguments=[W_Pair], simple=False)
+def eval(args, env, cont):
+    from slipy.interpreter import interpret_with_env, return_value_direct
+    form = args[0]
+    # TODO: fix %s stuff
+    expanded = expand_string("(%s)"%str(form))
+    ast = parse_ast(expanded)
+    try:
+        interpret_with_env(ast, env)
+    except EvaluationFinished as e:
+        return return_value_direct(e.val, env, cont)
+    except:
+        raise

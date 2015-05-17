@@ -7,26 +7,30 @@ from slipy.values import *
 # expanding W_SlipObject data to an AST.
 
 
+def _parse_value(val):
+    type = val['type']
+    if type == 'number':
+        return W_Number(val['val'])
+    elif type == 'bool':
+        return W_Boolean.from_value(val['val'])
+    elif type == 'symbol':
+        return W_Symbol.from_string(val['val'])
+    elif type == 'string':
+        return W_String(val['val'])
+    elif type == 'char':
+        # TODO: Or are they supported?
+        raise Exception("chars not supported")
+    else:
+        # TODO: remove eventually
+        raise Exception("_parse_value exception")
+
+
 def _parse_list(values):
     def get_value(val):
         if isinstance(val, list):
             return helper(val)
         else:
-            type = val['type']
-            if type == 'number':
-                return W_Number(val['val'])
-            elif type == 'bool':
-                return W_Boolean.from_value(val['val'])
-            elif type == 'symbol':
-                return W_Symbol.from_string(val['val'])
-            elif type == 'string':
-                return W_String(val['val'])
-            elif type == 'char':
-                # TODO: Or are they supported?
-                raise Exception("chars not supported")
-            else:
-                # TODO: remove eventually
-                raise Exception("_parse_list get_value fail")
+            return _parse_value(val)
 
     def helper(vals):
         if not vals:
@@ -98,32 +102,12 @@ def _parse_program(program):
     return VarLet(vars, exprs)
 
 
-def parse(data):
-    # TODO: Check if data is W_SlipObject in the future
-    return _parse_program(data)
+def parse_ast(json):
+    return _parse_program(json)
 
-"""
-;; JSON Output specifics:
 
-;; <prog> ::= {vars: [<var>], exps: [<exp>]}
-
-;; <var> ::= <string>
-
-;; <exp> ::= {type: "let", var: <var>, val: <cexp>, body: <exp>}
-;;        |  {} ;; voor andere let
-;;        |  <aexp>
-;;        |  <cexp>
-
-;; <cexp> ::= {type: "if", test: <aexp>, consequent: <exp>, alternative: <exp>}
-;;         |  {type: "set", target: <var>, val: <aexp>}
-;;         |  {type: "apl", operator: <aexp>, operands: [<aexp>]}
-
-;; <aexp> ::= {type: "lambda", vars: [<vars>], body: <prog>}
-;;         |  {type: "quoted-list", val: [<aexp>]}
-;;         |  {type: "symbol", val: <string>}
-;;         |  {type: "number", val: <number>}
-;;         |  {type: "bool", val: <bool>}
-;;         |  {type: "string", val: <string>}
-;;         |  {type: "char", val: <char>}
-;;         |  {type: "var", val: <var>}
-"""
+def parse_data(data):
+    if data['type'] == 'quoted-list':
+        return _parse_list(data['val'])
+    else:
+        return _parse_value(data)

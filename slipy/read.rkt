@@ -415,8 +415,10 @@
 ;;
 
 (define (slip-read s-exp)
-  (hash 'type "quoted-list"
-        'val (list->json s-exp)))
+  (if (list? s-exp)
+      (hash 'type "quoted-list"
+            'val (list->json s-exp))
+      (aexp->json s-exp)))
 
 (define (slip-expand exp #:json [json #f])
   (let ([res (normalize-program exp)])

@@ -1,6 +1,5 @@
 import json, os
 from rpython.rlib.objectmodel import we_are_translated
-from slipy import AST
 
 
 # TODO: Fix it conceptually
@@ -58,8 +57,17 @@ class ReaderPython(object):
         self.proc.poll()
         return not(self.proc.returncode)
 
+    # TODO: Maybe those %s need to be between double quotes
     def read(self, str):
-        raw = self._try_read(str)
+        raw = self._try_read("(read %s)" % str)
+        data = json.loads(raw)
+        if data['success']:
+            return data['content']
+        else:
+            raise Exception("Read error: %s" % data['content'])
+
+    def expand(self, str):
+        raw = self._try_read("(expand %s)" % str)
         data = json.loads(raw)
         if data['success']:
             return data['content']
@@ -95,4 +103,9 @@ _reader = ReaderRPython() if we_are_translated() else ReaderPython()
 
 def read_string(str):
     json_data = _reader.read(str)
+    return json_data
+
+
+def expand_string(str):
+    json_data = _reader.expand(str)
     return json_data
