@@ -79,11 +79,10 @@
 ;;         |  {type: "var", val: <var>}
 
 (require (rename-in racket/base
-                    (read rkt-read)
                     (primitive? rkt-primitive?))
          json)
 
-(provide read read-loop)
+(provide read-loop slip-expand slip-read)
 
 ;; TODO: What about reading cons cells?
 
@@ -415,7 +414,11 @@
 ;; Read code
 ;;
 
-(define (read exp #:json [json #f])
+(define (slip-read s-exp)
+  (hash 'type "quoted-list"
+        'val (list->json s-exp)))
+
+(define (slip-expand exp #:json [json #f])
   (let ([res (normalize-program exp)])
     ;;(pretty-print res)
     (if json
@@ -427,8 +430,14 @@
                    (lambda (e)
                      (jsexpr->string (hash 'success #f
                                            'content (format "~a" e))))])
-    (let* ([s-exp (rkt-read (open-input-string str))]
-           [res (read s-exp #:json #t)]
+    (let* ([s-exp (read (open-input-string str))]
+           [res (match s-exp
+                  [`(read ,data)
+                   (slip-read data)]
+                  [`(expand ,data)
+                   (slip-expand data #:json #t)]
+                  [else
+                   (error "Wrong modus")])]
            #;[out (format "~a" res)])
       (jsexpr->string (hash 'success #t
                             'content res)))))

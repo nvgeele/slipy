@@ -1,7 +1,6 @@
 #lang racket
 
-(require (rename-in "read.rkt"
-                    (read slip-read))
+(require "read.rkt"
          json)
 
 (define helper (compose (lambda _ (displayln "-----"))
@@ -10,11 +9,30 @@
                           ;;(pretty-print (jsexpr->string hash))
                           (void))
                         (lambda (input)
-                          (slip-read input #:json #t))
+                          (slip-expand input #:json #t))
                         read
                         open-input-string))
 
-(helper "((if #t (define x 1) 2))")
+(define helper2 (compose (lambda _ (displayln "-----"))
+                         (lambda (hash)
+                           (pretty-print hash)
+                           (void))
+                         (lambda (input)
+                           (slip-read input))
+                         read
+                         open-input-string))
+
+;;
+;; "Tests" for slip-read
+;;
+
+(helper2 "(if #t 1 2)")
+
+;;
+;; "Tests" for slip-expand
+;;
+
+;;(helper "((if #t (define x 1) 2))")
 ;;(helper "('a)")
 ;;(helper "((+ 1 'a))")
 ;;(helper "((define (f return) (return 2) 3) (display (f (lambda (x) x))) (display (call/cc f)))")
