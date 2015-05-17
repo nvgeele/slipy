@@ -29,9 +29,19 @@ class W_Pair(W_SlipObject):
     def cdr(self):
         return self._cdr
 
+    def _to_lstring(self):
+        car = str(self._car)
+        cdr = self._cdr
+        if isinstance(cdr, W_Pair):
+            return "%s %s" % (car, cdr._to_lstring())
+        elif cdr is w_empty:
+            return car
+        else:
+            return "%s . %s" % (car, str(cdr))
+
     def __str__(self):
-        # TODO: fixme
-        return "(cons %s %s)" % (self._car, self._cdr)
+        # TODO: fix if quote is first symbol
+        return "(%s)" % self._to_lstring()
 
 
 class W_Vector(W_SlipObject):
@@ -43,6 +53,7 @@ class W_Null(W_SlipObject):
         return "'()"
 
 
+# TODO: Specialized classes for different types of numbers (trick)
 class W_Number(W_SlipObject):
     def __init__(self, value):
         self._val = value
