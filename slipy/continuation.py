@@ -25,11 +25,7 @@ class LetContinuation(Continuation):
         self._env = env
 
     def cont(self, val, env):
-        # assert isinstance(val, W_SlipObject)
-        # assert isinstance(self._var, W_Symbol)
-        # assert isinstance(self._env, Env)
         new_env = Env(previous=self._env)
-        # TODO: Restore me you shit
         new_env.add_var(self._var, val)
         return self._body, new_env, self._prev
 

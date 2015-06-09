@@ -34,14 +34,9 @@ class Application(AST):
     def eval(self, env, cont):
         # Operator & operands are aexps, thus simple
         operator = self._operator.eval_simple(env)
-
-        # operands = [op.eval_simple(env) for op in self._operands]
-
         operands = [None] * len(self._operands)
         for i, op in enumerate(self._operands):
-            # TODO: We should not need this assert
             operands[i] = op.eval_simple(env)
-
         if not isinstance(operator, W_Callable):
             raise SlipException("Operator not a callable instance")
         else:

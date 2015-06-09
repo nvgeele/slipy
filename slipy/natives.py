@@ -13,16 +13,6 @@ native_dict = {}
 def declare_native(name, simple=True):
     def wrapper(func):
         def inner(args, env, cont):
-            # if isinstance(arguments, list):
-                # TODO: Possibly optimizable
-                # assert len(args) == len(args)
-                # for arg, type in zip(args, arguments):
-                #     assert isinstance(type, )
-                #     assert isinstance(arg, type)
-            # elif arguments:
-            #     for arg in args:
-            #         assert isinstance(arg, arguments)
-
             if simple:
                 from slipy.interpreter import return_value_direct
                 result = func(args)
@@ -168,7 +158,3 @@ def eval(args, env, cont):
     ast = parse_ast(expanded)
     return_value = interpret_with_env(ast, env)
     return return_value_direct(return_value, env, cont)
-    # except EvaluationFinished as e:
-    #     return return_value_direct(e.value, env, cont)
-    # except:
-    #     raise
