@@ -5,7 +5,8 @@ from slipy.util import raw_input
 
 
 def main(argv):
-    # TODO: Make let-var env merging possible for REPL
+    # TODO: Expand file
+    # TODO: Top-level env join with varlet
     env = initialize_global_env()
     # while True:
     #     str = raw_input(">>> ")
@@ -27,9 +28,13 @@ def main(argv):
     #     except Exception as e:
     #         print e
 
-    input = raw_input(">>> ")
+    # input = raw_input(">>> ")
     # input = "((displayln \"WOOO\"))"
+    # input = "((define(repl)(display \">>> \")(let((input(read)))(displayln(eval input)))(repl))(repl))"
+    # input = "((read))"
+    input = "((+ (read) (read)))"
     data = expand_string(input)
+    # print data
     ast = parse_ast(data)
     # print ast
     # print env

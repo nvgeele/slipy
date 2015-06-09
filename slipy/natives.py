@@ -114,14 +114,14 @@ def slip_time(args):
 @declare_native("display")
 def display(args):
     assert len(args) == 1
-    write(str(args[0]))
+    write(args[0].to_string())
     return w_void
 
 
 @declare_native("displayln")
 def display(args):
     assert len(args) == 1
-    print str(args[0])
+    print args[0].to_string()
     return w_void
 
 
@@ -163,7 +163,6 @@ def read(args):
 def eval(args, env, cont):
     from slipy.interpreter import interpret_with_env, return_value_direct
     form = args[0]
-    assert isinstance(form, W_Pair)
     # TODO: fix %s stuff
     expanded = expand_string("(%s)"%str(form))
     ast = parse_ast(expanded)

@@ -30,7 +30,7 @@ class LetContinuation(Continuation):
         # assert isinstance(self._env, Env)
         new_env = Env(previous=self._env)
         # TODO: Restore me you shit
-        # new_env.add_var(self._var, val)
+        new_env.add_var(self._var, val)
         return self._body, new_env, self._prev
 
 

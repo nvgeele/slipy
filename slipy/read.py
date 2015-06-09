@@ -105,6 +105,8 @@ def _parse_json_file(path):
     else:
         raise Exception("Read error")
 
+# TODO: Separate reader for Translated code and interpreted code
+
 def read_string(str):
     json_file = _call_reader_rpython("read", str)
     json_data = _parse_json_file(json_file)
