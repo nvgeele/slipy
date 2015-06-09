@@ -35,14 +35,14 @@ class W_Pair(W_SlipObject):
         return self._cdr
 
     def _to_lstring(self):
-        car = str(self._car)
+        car = self._car.to_string()
         cdr = self._cdr
         if isinstance(cdr, W_Pair):
             return "%s %s" % (car, cdr._to_lstring())
         elif cdr is w_empty:
             return car
         else:
-            return "%s . %s" % (car, str(cdr))
+            return "%s . %s" % (car, cdr.to_string())
 
     def __str__(self):
         # TODO: fix if quote is first symbol

@@ -1,3 +1,4 @@
+from slipy.exceptions import SlipException
 from slipy.parse import parse_ast
 from slipy.interpreter import interpret_with_env, initialize_global_env
 from slipy.read import expand_string, expand_file, init_reader
@@ -19,11 +20,14 @@ def main(argv):
         # data = expand_string(input)
         data = expand_file(argv[1])
         ast = parse_ast(data)
-        # print ast
         print interpret_with_env(ast, env).to_string()
+    except SlipException, e:
+        print "Slip error: %s" % e.message
+        raise
     except Exception, e:
         if we_are_translated():
-            print "Caught an exception: " % (e)
+            print "Caught an exception!"
+            raise
         else:
             print e
 

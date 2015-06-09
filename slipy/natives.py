@@ -187,7 +187,7 @@ def eval(args, env, cont):
     from slipy.interpreter import interpret_with_env, return_value_direct
     form = args[0]
     # TODO: fix %s stuff
-    expanded = expand_string("(%s)"%str(form))
+    expanded = expand_string("(%s)" % form.to_string())
     ast = parse_ast(expanded)
     return_value = interpret_with_env(ast, env)
     return return_value_direct(return_value, env, cont)

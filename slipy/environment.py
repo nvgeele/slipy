@@ -29,7 +29,7 @@ class Env(object):
             return self._previous.get_var(id)
         else:
             # TODO: Better error msg
-            raise SlipException("var `%s' not found" % id)
+            raise SlipException("var `%s' not found" % id.to_string())
 
     def add_var(self, sym, val):
         if sym in self._bindings:

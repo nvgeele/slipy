@@ -4,7 +4,8 @@
 class SlipException(Exception):
     def __init__(self, msg):
         # super(SlipException, self).__init__(msg)
-        self.msg = msg
+        # self.msg = msg
+        self.message = msg
 
 
 class EvaluationFinished(Exception):
