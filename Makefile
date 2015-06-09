@@ -22,7 +22,7 @@ translate-jit: slipy-c
 translate-no-jit: slipy-c-nojit
 
 slipy-c: $(PYFILES)
-	$(RPYTHON) -Ojit targetslipy.py
+	$(RPYTHON) -Ojit targetslipy.py --output=slipy-jit
 
 slipy-c-nojit: $(PYFILES)
-	$(RPYTHON) targetslipy.py
+	$(RPYTHON) targetslipy.py --output=slipy-nojit

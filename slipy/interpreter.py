@@ -1,6 +1,10 @@
 from slipy.continuation import empty_continuation
 from slipy.environment import Env
 from slipy.exceptions import EvaluationFinished
+from rpython.rlib import jit
+
+
+driver = jit.JitDriver(reds=["env", "cont"], greens=["ast"])
 
 
 def initialize_global_env():
@@ -17,6 +21,7 @@ def return_value_direct(value, env, cont):
 
 def _interpret(ast, env, cont):
     while True:
+        driver.jit_merge_point(ast=ast, env=env, cont=cont)
         ast, env, cont = ast.eval(env, cont)
 
 
