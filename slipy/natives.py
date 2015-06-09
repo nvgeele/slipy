@@ -9,7 +9,7 @@ from slipy.util import raw_input, write, zip
 native_dict = {}
 
 # TODO: Fix type checking for RPython inferencing
-# TODO: replace asserts with exceptions?
+# TODO: replace asserts with exceptions!!!
 def declare_native(name, simple=True):
     def wrapper(func):
         def inner(args, env, cont):
@@ -95,14 +95,18 @@ def divide(args):
 
 @declare_native("=") #, arguments=W_Number)
 def num_equal(args):
-    assert len(args) > 1
-    assert isinstance(args[0], W_Number)
-    val = args[0].value()
-    for arg in args[1:]:
-        assert isinstance(arg, W_Number)
-        if arg.value() != val:
+    assert len(args) >= 2
+    i = 2
+    v = True
+    while i <= len(args):
+        l, r = args[i-2], args[i-1]
+        assert isinstance(l, W_Number)
+        assert isinstance(r, W_Number)
+        v = v and l.is_eq(r)
+        if not v:
             return w_false
-    return w_true
+        i += 1
+    return W_Boolean.from_value(v)
 
 
 @declare_native("apply", simple=False) #, arguments=[W_Callable, W_Pair])

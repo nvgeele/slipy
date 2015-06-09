@@ -75,6 +75,9 @@ class W_Number(W_SlipObject):
     def div(self, other):
         raise Exception("abstract method")
 
+    def is_eq(self, other):
+        raise Exception("abstract method")
+
 
 class W_Integer(W_Number):
     is_int = True
@@ -112,6 +115,12 @@ class W_Integer(W_Number):
         else:
             return W_Integer(self._val / other.value())
 
+    def is_eq(self, other):
+        if isinstance(other, W_Integer):
+            return self._val == other.value()
+        else:
+            return False
+
 
 class W_Float(W_Number):
     is_float = True
@@ -148,6 +157,12 @@ class W_Float(W_Number):
             return W_Float(self._val / float(other.value()))
         else:
             return W_Float(self._val / other.value())
+
+    def is_eq(self, other):
+        if isinstance(other, W_Float):
+            return self._val == other.value()
+        else:
+            return False
 
 
 class W_Boolean(W_SlipObject):
