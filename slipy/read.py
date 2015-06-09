@@ -137,6 +137,17 @@ def expand_string(str):
     return _reader.reader.expand(str)
 
 
+def expand_file(path):
+    if we_are_translated():
+        assert isinstance(_reader.reader, ReaderRPython)
+    if not os.access(path, os.R_OK):
+        raise Exception("Can not read file")
+    f = streamio.open_file_as_stream(path)
+    s = f.readall()
+    f.close()
+    return _reader.reader.expand(s)
+
+
 def init_reader():
     if we_are_translated():
         _reader.reader = ReaderRPython()
