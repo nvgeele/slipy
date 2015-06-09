@@ -15,15 +15,15 @@ def main(argv):
         init_reader()
         env = initialize_global_env()
         # input = "((define(repl)(display \">>> \")(let((input(read)))(displayln(eval input)))(repl))(repl))"
-        # input = "((+ (read) (read)))"
+        # input = "((+ 1 2)))"
         # data = expand_string(input)
         data = expand_file(argv[1])
         ast = parse_ast(data)
-        print ast
+        # print ast
         print interpret_with_env(ast, env).to_string()
     except Exception, e:
         if we_are_translated():
-            print "Caught an exception!"
+            print "Caught an exception: " % (e)
         else:
             print e
 

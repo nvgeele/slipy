@@ -4,7 +4,8 @@ from slipy.continuation import *
 from slipy.util import zip
 
 # TODO: __str__ for all classes
-# TODO: getters and setters
+# TODO: getters and setters?
+# TODO: memoized constructors for nums etc?
 
 _symbol_pool = {}
 
@@ -48,6 +49,7 @@ class W_Pair(W_SlipObject):
         return "(%s)" % self._to_lstring()
 
 
+# TODO: Vectors
 class W_Vector(W_SlipObject):
     pass
 
@@ -59,14 +61,94 @@ class W_Null(W_SlipObject):
 
 # TODO: Specialized classes for different types of numbers (trick)
 class W_Number(W_SlipObject):
+    is_int = is_float = False
+
+    def add(self, other):
+        raise Exception("abstract method")
+
+    def sub(self, other):
+        raise Exception("abstract method")
+
+    def mul(self, other):
+        raise Exception("abstract method")
+
+    def div(self, other):
+        raise Exception("abstract method")
+
+
+class W_Integer(W_Number):
+    is_int = True
+
     def __init__(self, value):
-        self._val = value
+        self._val = int(value)
 
     def value(self):
         return self._val
 
     def __str__(self):
         return str(self._val)
+
+    def add(self, other):
+        if isinstance(other, W_Float):
+            return W_Float(float(self._val) + other.value())
+        else:
+            return W_Integer(self._val + other.value())
+
+    def sub(self, other):
+        if isinstance(other, W_Float):
+            return W_Float(float(self._val) - other.value())
+        else:
+            return W_Integer(self._val - other.value())
+
+    def mul(self, other):
+        if isinstance(other, W_Float):
+            return W_Float(float(self._val) * other.value())
+        else:
+            return W_Integer(self._val * other.value())
+
+    def div(self, other):
+        if isinstance(other, W_Float):
+            return W_Float(float(self._val) / other.value())
+        else:
+            return W_Integer(self._val / other.value())
+
+
+class W_Float(W_Number):
+    is_float = True
+
+    def __init__(self, value):
+        self._val = float(value)
+
+    def value(self):
+        return self._val
+
+    def __str__(self):
+        return str(self._val)
+
+    def add(self, other):
+        if isinstance(other, W_Integer):
+            return W_Float(self._val + float(other.value()))
+        else:
+            return W_Float(self._val + other.value())
+
+    def sub(self, other):
+        if isinstance(other, W_Integer):
+            return W_Float(self._val - float(other.value()))
+        else:
+            return W_Float(self._val - other.value())
+
+    def mul(self, other):
+        if isinstance(other, W_Integer):
+            return W_Float(self._val * float(other.value()))
+        else:
+            return W_Float(self._val * other.value())
+
+    def div(self, other):
+        if isinstance(other, W_Integer):
+            return W_Float(self._val / float(other.value()))
+        else:
+            return W_Float(self._val / other.value())
+
 
 class W_Boolean(W_SlipObject):
     def __init__(self, value):

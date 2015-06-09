@@ -35,33 +35,62 @@ def declare_native(name, simple=True):
 
 @declare_native("+") #, arguments=W_Number)
 def plus(args):
-    accum = 0
-    for arg in args:
-        assert isinstance(arg, W_Number)
-        accum += arg.value()
-    return W_Number(accum)
+    if len(args) == 0:
+        return W_Integer(0)
+    elif len(args) == 1:
+        assert isinstance(args[0], W_Number)
+        return args[0]
+    else:
+        acc = args[0]
+        for i in range(1, len(args)):
+            assert isinstance(args[i], W_Number)
+            acc = acc.add(args[i])
+        return acc
 
 
 @declare_native("-") #, arguments=W_Number)
 def minus(args):
-    if len(args) == 1:
+    if len(args) == 0:
+        return W_Integer(0)
+    elif len(args) == 1:
         assert isinstance(args[0], W_Number)
-        return W_Number(-args[0].value())
-    assert isinstance(args[0], W_Number)
-    accum = args[0].value()
-    for arg in args[1:]:
-        assert isinstance(arg, W_Number)
-        accum -= arg.value()
-    return W_Number(accum)
+        return W_Integer(0).sub(args[0])
+    else:
+        acc = args[0]
+        for i in range(1, len(args)):
+            assert isinstance(args[i], W_Number)
+            acc = acc.sub(args[i])
+        return acc
 
 
 @declare_native("*") #, arguments=W_Number)
 def multiply(args):
-    accum = 1
-    for arg in args:
-        assert isinstance(arg, W_Number)
-        accum *= arg.value()
-    return W_Number(accum)
+    if len(args) == 0:
+        return W_Integer(1)
+    elif len(args) == 1:
+        assert isinstance(args[0], W_Number)
+        return args[0]
+    else:
+        acc = args[0]
+        for i in range(1, len(args)):
+            assert isinstance(args[i], W_Number)
+            acc = acc.mul(args[i])
+        return acc
+
+
+@declare_native("/") #, arguments=W_Number)
+def divide(args):
+    if len(args) == 0:
+        return W_Integer(1)
+    elif len(args) == 1:
+        assert isinstance(args[0], W_Number)
+        return args[0]
+    else:
+        acc = args[0]
+        for i in range(1, len(args)):
+            assert isinstance(args[i], W_Number)
+            acc = acc.div(args[i])
+        return acc
 
 
 @declare_native("=") #, arguments=W_Number)
@@ -98,7 +127,7 @@ def callcc(args, env, cont):
 @declare_native("time")
 def slip_time(args):
     assert len(args) == 0
-    return W_Number(time.time())
+    return W_Float(time.time())
 
 
 @declare_native("display")

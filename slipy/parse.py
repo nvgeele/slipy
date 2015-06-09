@@ -2,12 +2,20 @@ from slipy.AST import *
 from slipy.values import *
 
 
+def _parse_num(obj):
+    assert obj['val'].is_num
+    assert obj['int'].is_bool
+    if obj['int'].bool_value():
+        return W_Integer(obj['val'].num_value())
+    else:
+        return W_Float(obj['val'].num_value())
+
+
 def _parse_value(val):
     assert val['type'].is_string
     type = val['type'].string_value()
     if type == 'number':
-        assert val['val'].is_num
-        return W_Number(val['val'].num_value())
+        return _parse_num(val)
     elif type == 'bool':
         assert val['val'].is_bool
         return W_Boolean.from_value(val['val'].bool_value())
@@ -88,8 +96,8 @@ def _parse_dict(dict):
         obj = W_Symbol.from_string(dict['val'].string_value())
         return Quote(obj)
     elif type == 'number':
-        assert dict['val'].is_num
-        return Quote(W_Number(dict['val'].num_value()))
+        obj = _parse_num(dict)
+        return Quote(obj)
     elif type == 'bool':
         assert dict['val'].is_bool
         obj = W_Boolean.from_value(dict['val'].bool_value())

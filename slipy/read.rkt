@@ -72,7 +72,7 @@
 ;; <aexp> ::= {type: "lambda", vars: [<vars>], body: <var-let>}
 ;;         |  {type: "quoted-list", val: [<aexp>]}
 ;;         |  {type: "symbol", val: <string>}
-;;         |  {type: "number", val: <number>}
+;;         |  {type: "number", int: <bool>, val: <number>}
 ;;         |  {type: "bool", val: <bool>}
 ;;         |  {type: "string", val: <string>}
 ;;         |  {type: "char", val: <char>}
@@ -303,6 +303,7 @@
               (list->json x)]
              [(? number?)
               (hash 'type "number"
+                    'int (exact? e)
                     'val e)]
              [(? boolean?)
               (hash 'type "bool"
@@ -345,6 +346,7 @@
                'val (symbol->string x)))]
     [(? number?)
      (hash 'type "number"
+           'int (exact? aexp)
            'val aexp)]
     [(? boolean?)
      (hash 'type "bool"
