@@ -1,5 +1,6 @@
 from slipy.environment import Env
 from slipy.exceptions import EvaluationFinished
+from slipy.values import *
 
 
 class Continuation(object):
@@ -13,6 +14,9 @@ class EmptyContinuation(Continuation):
         raise EvaluationFinished(val)
 
 
+empty_continuation = EmptyContinuation()
+
+
 class LetContinuation(Continuation):
     def __init__(self, prev, var, body, env):
         self._prev = prev
@@ -21,8 +25,12 @@ class LetContinuation(Continuation):
         self._env = env
 
     def cont(self, val, env):
+        # assert isinstance(val, W_SlipObject)
+        # assert isinstance(self._var, W_Symbol)
+        # assert isinstance(self._env, Env)
         new_env = Env(previous=self._env)
-        new_env.add_var(self._var, val)
+        # TODO: Restore me you shit
+        # new_env.add_var(self._var, val)
         return self._body, new_env, self._prev
 
 
@@ -35,8 +43,8 @@ class SequenceContinuation(Continuation):
     def cont(self, val, env):
         # TODO: Use an index instead of manipulating lists?
         if len(self._exprs) == 1:
-            #from slipy.interpreter import return_value_direct
-            #return return_value_direct(val, self._env, self._prev)
+            # from slipy.interpreter import return_value_direct
+            # return return_value_direct(val, self._env, self._prev)
             return self._exprs[0], self._env, self._prev
         else:
             cont = SequenceContinuation(self._exprs[1:], self._env, self._prev)

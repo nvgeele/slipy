@@ -1,6 +1,7 @@
 from slipy.environment import Env
 from slipy.exceptions import *
 from slipy.continuation import *
+from slipy.util import zip
 
 # TODO: __str__ for all classes
 # TODO: getters and setters
@@ -14,6 +15,9 @@ class W_SlipObject(object):
 
     def __str__(self):
         return "<W_SlipObject>"
+
+    def to_string(self):
+        return self.__str__()
 
 
 class W_Pair(W_SlipObject):
@@ -142,7 +146,7 @@ class W_Continuation(W_Callable):
 
     def call(self, args, env, cont):
         from slipy.interpreter import return_value_direct
-        # TODO: deal with args
+        # TODO: deal with too much args etc
         return return_value_direct(args[0], env, self._cont)
 
     def __str__(self):

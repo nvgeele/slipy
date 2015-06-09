@@ -82,7 +82,7 @@
                     (primitive? rkt-primitive?))
          json)
 
-(provide read-loop slip-expand slip-read)
+(provide do-read read-loop slip-expand slip-read)
 
 ;; TODO: What about reading cons cells?
 
@@ -439,12 +439,26 @@
                   [`(expand ,data)
                    (slip-expand data #:json #t)]
                   [else
-                   (error "Wrong modus")])]
-           #;[out (format "~a" res)])
+                   (error "Wrong modus")])])
       (jsexpr->string (hash 'success #t
                             'content res)))))
 
 ;; Code adapted from Pycket
+(define (do-read path)
+  (define output
+    (let rd ([s null])
+      (define d (read-bytes-line))
+      (cond [(or (equal? d #"\0") (eof-object? d))
+             (read-loop* (bytes->string/utf-8
+                          (apply bytes-append
+                                 (add-between (reverse s) #"\n"))))]
+            [else
+             (rd (cons d s))])))
+  (call-with-output-file path
+    (lambda (out)
+      (display output out))
+    #:exists 'truncate))
+
 (define (read-loop)
   (define mod
     (let rd ([s null])

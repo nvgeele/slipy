@@ -24,28 +24,46 @@ def unquote(s):
 
 
 class J_Base(object):
-    pass
+    is_string = is_bool = is_list = is_object = is_num = False
+
+    def string_value(self):
+        raise TypeError
+
+    def bool_value(self):
+        raise TypeError
+
+    def object_value(self):
+        raise TypeError
+
+    def list_value(self):
+        raise TypeError
+
+    def num_value(self):
+        raise TypeError
 
 
 class J_Simple(J_Base):
     def __init__(self, val):
         self._val = val
 
-    def val(self):
+
+class J_String(J_Simple):
+    is_string = True
+
+    def string_value(self):
         return self._val
 
 
-class J_String(J_Simple):
-    pass
-
-
 class J_Bool(J_Simple):
-    pass
+    is_bool = True
 
+    def bool_value(self):
+        return self._val
 
-class J_Entry(J_Base):
+class Entry(object):
     def __init__(self, key, val):
-        self._key = key
+        assert isinstance(key, J_String)
+        self._key = key.string_value()
         self._val = val
 
     def key(self):
@@ -55,28 +73,34 @@ class J_Entry(J_Base):
         return self._val
 
 
-class J_Dict(J_Base):
+class J_Object(J_Base):
+    is_object = True
+
     def __init__(self, entries):
         self._dict = {}
         for entry in entries:
             self._dict[entry.key()] = entry.val()
 
-    def val(self):
+    def object_value(self):
         return self._dict
 
 
 class J_List(J_Base):
+    is_list = True
+
     def __init__(self, values):
         self._list = []
         for v in values:
             assert isinstance(v, J_Base)
-            self._list.append(v.val())
+            self._list.append(v)
 
-    def val(self):
+    def list_value(self):
         return self._list
 
 
 class J_Num(J_Base):
+    is_num = True
+
     def __init__(self, str):
         try:
             self._val = int(str)
@@ -86,8 +110,12 @@ class J_Num(J_Base):
             except:
                 raise Exception("Number type not supported")
 
-    def val(self):
+    def num_value(self):
         return self._val
+
+
+j_true = J_Bool(True)
+j_false = J_Bool(False)
 
 
 class JSONParser(PackratParser):
@@ -109,11 +137,11 @@ class JSONParser(PackratParser):
 
     TRUE:
         'true'
-        return {J_Bool(True)};
+        return {j_true};
 
     FALSE:
         'false'
-        return {J_Bool(False)};
+        return {j_false};
 
     array_values:
         r = array_values
@@ -141,7 +169,7 @@ class JSONParser(PackratParser):
         ':'
         IGNORE*
         v = value
-        return {J_Entry(s.val(), v.val())};
+        return {Entry(s, v)};
 
     entries:
         e = entry
@@ -159,7 +187,7 @@ class JSONParser(PackratParser):
         e = entries
         IGNORE*
         '}'
-        return {J_Dict(e)};
+        return {J_Object(e)};
 
     value:
         STRING
@@ -175,8 +203,6 @@ def loads(str):
     p = JSONParser(str)
     try:
         v = p.value()
-        #assert isinstance(v, J_Base)
-        #v = v.val()
         return v
     except:
         raise Exception("Could not parse JSON")

@@ -31,11 +31,11 @@ class Env(object):
             # TODO: Better error msg
             raise SlipException("var `%s' not found" % id)
 
-    def add_var(self, id, val):
-        if id in self._bindings:
+    def add_var(self, sym, val):
+        if sym in self._bindings:
             raise Exception("Can not overwrite binding")
         c = Cell(val)
-        self._bindings[id] = c
+        self._bindings[sym] = c
 
     def __str__(self):
         keys = " ".join(map(str, self._bindings.keys()))

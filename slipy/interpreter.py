@@ -1,5 +1,6 @@
-from slipy.continuation import EmptyContinuation
+from slipy.continuation import empty_continuation
 from slipy.environment import Env
+from slipy.exceptions import EvaluationFinished
 
 
 def initialize_global_env():
@@ -20,10 +21,13 @@ def _interpret(ast, env, cont):
 
 
 def interpret_with_env(ast, env):
-    cont = EmptyContinuation()
-    _interpret(ast, env, cont)
+    try:
+        cont = empty_continuation
+        _interpret(ast, env, cont)
+    except EvaluationFinished, e:
+        return e.value
 
 
 def interpret_program(prog):
     env = initialize_global_env()
-    interpret_with_env(prog, env)
+    return interpret_with_env(prog, env)

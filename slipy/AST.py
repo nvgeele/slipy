@@ -25,16 +25,27 @@ class AST(object):
 
 class Application(AST):
     def __init__(self, operator, operands):
+        assert operator.simple
+        for o in operands:
+            assert o.simple
         self._operator = operator
         self._operands = operands
 
     def eval(self, env, cont):
         # Operator & operands are aexps, thus simple
         operator = self._operator.eval_simple(env)
-        operands = [op.eval_simple(env) for op in self._operands]
+
+        # operands = [op.eval_simple(env) for op in self._operands]
+
+        operands = [None] * len(self._operands)
+        for i, op in enumerate(self._operands):
+            # TODO: We should not need this assert
+            operands[i] = op.eval_simple(env)
+
         if not isinstance(operator, W_Callable):
             raise SlipException("Operator not a callable instance")
-        return operator.call(operands, env, cont)
+        else:
+            return operator.call(operands, env, cont)
 
     def __str__(self):
         rator_str = str(self._operator)
@@ -130,6 +141,7 @@ class VarLet(AST):
     def eval(self, env, cont):
         new_env = Env(previous=env)
         for var in self._vars:
+            assert isinstance(var, W_Symbol)
             new_env.add_var(var, w_undefined)
         if len(self._body) == 1:
             return self._body[0], new_env, cont
