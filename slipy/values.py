@@ -67,7 +67,6 @@ class W_Vector(W_SlipObject):
 
     def ref(self, idx):
         if idx >= self.length:
-            print type(idx)
             raise SlipException("index out of bounds")
         return self._values[idx]
 
@@ -111,6 +110,8 @@ class W_Number(W_SlipObject):
 
 
 class W_Integer(W_Number):
+    _imutable_fields_ = ["_val"]
+
     is_int = True
 
     def __init__(self, value):
@@ -154,6 +155,8 @@ class W_Integer(W_Number):
 
 
 class W_Float(W_Number):
+    _imutable_fields_ = ["_val"]
+
     is_float = True
 
     def __init__(self, value):

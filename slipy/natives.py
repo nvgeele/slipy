@@ -227,8 +227,9 @@ def vector(args):
 @declare_native("make-vector")
 def make_vector(args):
     assert len(args) == 2
-    assert isinstance(args[0], W_Integer)
-    return W_Vector.make(args[0].value(), args[1])
+    size = args[0]
+    assert isinstance(size, W_Integer)
+    return W_Vector.make(size.value(), args[1])
 
 
 @declare_native("vector-length")
@@ -241,15 +242,17 @@ def vector_length(args):
 @declare_native("vector-ref")
 def vector_ref(args):
     assert len(args) == 2
+    idx = args[1]
     assert isinstance(args[0], W_Vector)
-    assert isinstance(args[1], W_Integer)
-    return args[0].ref(args[1].value())
+    assert isinstance(idx, W_Integer)
+    return args[0].ref(idx.value())
 
 
 @declare_native("vector-set!")
 def vector_set(args):
     assert len(args) == 3
+    idx = args[1]
     assert isinstance(args[0], W_Vector)
-    assert isinstance(args[1], W_Integer)
-    args[0].set(args[1].value(), args[2])
+    assert isinstance(idx, W_Integer)
+    args[0].set(idx.value(), args[2])
     return args[2]
