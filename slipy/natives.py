@@ -8,9 +8,11 @@ from slipy.util import raw_input, write, zip
 
 native_dict = {}
 
-# TODO: exact->inexact
-# TODO: Fix type checking for RPython inferencing
 # TODO: replace asserts with exceptions!!!
+# TODO: exact->inexact
+# TODO: list
+
+# TODO: Fix type checking for RPython inferencing
 def declare_native(name, simple=True):
     def wrapper(func):
         def inner(args, env, cont):
@@ -209,3 +211,39 @@ def eval(args, env, cont):
     ast = parse_ast(expanded)
     return_value = interpret_with_env(ast, env)
     return return_value_direct(return_value, env, cont)
+
+
+@declare_native("vector")
+def vector(args):
+    return W_Vector(args, len(args))
+
+
+@declare_native("make-vector")
+def make_vector(args):
+    assert len(args) == 2
+    assert isinstance(args[0], W_Integer)
+    return W_Vector.make(args[0].value(), args[1])
+
+
+@declare_native("vector-length")
+def vector_length(args):
+    assert len(args) == 1
+    assert isinstance(args[0], W_Vector)
+    return W_Integer(args[0].length)
+
+
+@declare_native("vector-ref")
+def vector_ref(args):
+    assert len(args) == 2
+    assert isinstance(args[0], W_Vector)
+    assert isinstance(args[1], W_Integer)
+    return args[0].ref(args[1].value())
+
+
+@declare_native("vector-set!")
+def vector_set(args):
+    assert len(args) == 3
+    assert isinstance(args[0], W_Vector)
+    assert isinstance(args[1], W_Integer)
+    args[0].set(args[1].value(), args[2])
+    return args[2]

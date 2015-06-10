@@ -26,6 +26,7 @@ class W_SlipObject(object):
 
 class W_Pair(W_SlipObject):
     # TODO: set! operations
+    # TODO: Fix for to_display
 
     def __init__(self, car, cdr):
         self._car = car
@@ -52,9 +53,36 @@ class W_Pair(W_SlipObject):
         return "(%s)" % self._to_lstring()
 
 
-# TODO: Vectors
 class W_Vector(W_SlipObject):
-    pass
+    _imutable_fields_ = ["length"]
+
+    def __init__(self, values, length):
+        self._values = values
+        self.length = length
+
+    @staticmethod
+    def make(length, val):
+        vals = [val] * length
+        return W_Vector(vals, length)
+
+    def ref(self, idx):
+        if idx >= self.length:
+            print type(idx)
+            raise SlipException("index out of bounds")
+        return self._values[idx]
+
+    def set(self, idx, val):
+        if idx >= self.length:
+            raise SlipException("index out of bounds")
+        self._values[idx] = val
+
+    # TODO: Fix for to_display
+    def __str__(self):
+        vals = [None] * self.length
+        for i, val in enumerate(self._values):
+            vals[i] = val.to_string()
+        vals = " ".join(vals)
+        return "(vector %s)" % vals
 
 
 class W_Null(W_SlipObject):
