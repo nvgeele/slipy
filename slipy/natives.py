@@ -189,8 +189,6 @@ def values_from_list(pair):
 @declare_native("append")
 def append(args):
     assert len(args) == 2
-    assert isinstance(args[0], W_Pair)
-    assert isinstance(args[1], W_Pair)
     v1 = values_from_list(args[0])
     v2 = values_from_list(args[1])
     return list_from_values(v1+v2)
