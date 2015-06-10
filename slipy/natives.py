@@ -9,7 +9,6 @@ from slipy.util import raw_input, write, zip
 native_dict = {}
 
 # TODO: replace asserts with exceptions!!!
-# TODO: exact->inexact
 # TODO: list
 
 # TODO: Fix type checking for RPython inferencing
@@ -110,6 +109,13 @@ def num_equal(args):
             return w_false
         i += 1
     return W_Boolean.from_value(v)
+
+
+@declare_native("exact->inexact")
+def exact_inexact(args):
+    assert len(args) == 1
+    assert isinstance(args[0], W_Integer)
+    return W_Float(args[0].value())
 
 
 @declare_native("apply", simple=False) #, arguments=[W_Callable, W_Pair])
