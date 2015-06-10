@@ -197,6 +197,15 @@ def list_length(args):
             raise SlipException("Argument not a list!")
 
 
+@declare_native("null?")
+def is_null(args):
+    assert len(args) == 1
+    if args[0] is w_empty:
+        return w_true
+    else:
+        return w_false
+
+
 @declare_native("read")
 def read(args):
     # TODO: multiline input
