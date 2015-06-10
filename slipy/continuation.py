@@ -8,10 +8,16 @@ class Continuation(object):
         # Should return ast, env, cont
         raise Exception("abstract base class")
 
+    def depth(self):
+        raise Exception("abstract base class")
+
 
 class EmptyContinuation(Continuation):
     def cont(self, val, env):
         raise EvaluationFinished(val)
+
+    def depth(self):
+        return 1
 
 
 empty_continuation = EmptyContinuation()
@@ -29,6 +35,9 @@ class LetContinuation(Continuation):
         new_env.add_var(self._var, val)
         return self._body, new_env, self._prev
 
+    def depth(self):
+        return 1 + self._prev.depth()
+
 
 class SequenceContinuation(Continuation):
     def __init__(self, exprs, env, prev):
@@ -45,3 +54,6 @@ class SequenceContinuation(Continuation):
         else:
             cont = SequenceContinuation(self._exprs[1:], self._env, self._prev)
             return self._exprs[0], self._env, cont
+
+    def depth(self):
+        return 1 + self._prev.depth()

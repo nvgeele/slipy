@@ -25,8 +25,10 @@ def return_value_direct(value, env, cont):
 
 
 def _interpret(ast, env, cont):
+    # from slipy.util import write
     while True:
         driver.jit_merge_point(ast=ast, env=env, cont=cont)
+        # write(str(cont.depth())+", ")
         ast, env, cont = ast.eval(env, cont)
 
 
