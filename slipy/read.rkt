@@ -233,7 +233,9 @@
     [`(,f . ,e*)
      (normalize-name f (lambda (t)
                          (normalize-name* e* (lambda (t*)
-                                               (k `(,t . ,t*))))))]))
+                                               (k `(,t . ,t*))))))]
+    [`()
+     (k '())]))
 
 (define (normalize-name exp k)
   (normalize exp
@@ -286,6 +288,7 @@
     [(? string?) #t]
     [(? char?) #t]
     [(? symbol?) #t]
+    ['() #t]
     [else #f]))
 
 (define (cexp? exp)
@@ -367,6 +370,9 @@
     [(? symbol?)
      (hash 'type "var"
            'val (symbol->string aexp))]
+    ['()
+     (hash 'type "quoted-list"
+           'val '())]
     [else (error (~a "Malformed aexp: " aexp))]))
 
 (define (cexp->json cexp)
