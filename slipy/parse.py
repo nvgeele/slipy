@@ -135,10 +135,10 @@ def _parse_dict(dict):
     elif type == 'let':
         assert dict['var'].is_string
         assert dict['val'].is_object
-        assert dict['body'].is_object
+        assert dict['body'].is_list
         sym = W_Symbol.from_string(dict['var'].string_value())
         val = _parse_dict(dict['val'].object_value())
-        body = _parse_dict(dict['body'].object_value())
+        body = _parse_exp_list(dict['body'].list_value())
         return Let(sym, val, body)
     elif type == 'var-let':
         assert dict['vars'].is_list

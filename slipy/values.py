@@ -86,7 +86,7 @@ class W_Vector(W_SlipObject):
 
 class W_Null(W_SlipObject):
     def __str__(self):
-        return "'()"
+        return "()"
 
 
 # TODO: Specialized classes for different types of numbers (trick)

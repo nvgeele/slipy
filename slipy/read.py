@@ -15,6 +15,7 @@ def _open_reader_python():
     return process
 
 
+# TODO: Fix reader not detecting errors anymore!
 class ReaderPython(object):
     def __init__(self):
         "NOT_RPYTHON"

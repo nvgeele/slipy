@@ -99,12 +99,24 @@ class Let(AST):
         self._body = body
 
     def eval(self, env, cont):
-        cont = LetContinuation(cont, self._sym, self._body, env)
-        return self._val, env, cont
+        if len(self._body) == 1:
+            l_cont = LetContinuation(cont, self._sym, self._body[0], env)
+        else:
+            s_cont = SequenceContinuation(self._body[1:], env, cont)
+            l_cont = LetContinuation(s_cont, self._sym, self._body[0], env)
+
+        # cont = LetContinuation(cont, self._sym, self._body, env)
+        # return self._val, env, cont
+
+        return self._val, env, l_cont
 
     def __str__(self):
+        bs = [None] * len(self._body)
+        for i, e in enumerate(self._body):
+            bs[i] = e.to_string()
+        bs = " ".join(bs)
         return "(let ([%s %s]) %s)" %\
-               (self._sym.to_string(), self._val.to_string(), self._body.to_string())
+               (self._sym.to_string(), self._val.to_string(), bs)
 
 
 class SetBang(AST):
