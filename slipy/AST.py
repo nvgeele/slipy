@@ -54,6 +54,7 @@ class Application(AST):
         return "(%s %s)" % (rator_str, rands_str)
 
 
+# TODO: Optimize VarLets away if vars are empty.
 class If(AST):
     def __init__(self, test, consequent, alternative):
         self._test = test

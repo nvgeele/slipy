@@ -5,6 +5,9 @@ from slipy.read import expand_string, expand_file, init_reader
 from rpython.rlib.objectmodel import we_are_translated
 
 
+# TODO: Cache ASTs of expanded files to disk?
+
+
 def main(argv):
     # TODO: Top-level env join with varlet
 
@@ -20,6 +23,7 @@ def main(argv):
         # data = expand_string(input)
         data = expand_file(argv[1])
         ast = parse_ast(data)
+        print "<< SliPy >>"
         print interpret_with_env(ast, env).to_string()
     except SlipException, e:
         print "Slip error: %s" % e.message

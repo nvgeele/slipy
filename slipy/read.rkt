@@ -15,9 +15,10 @@
 ;; <exp> ::= (define (<var> <name> ...) <exp> ...)
 ;;        |  (define <var> <exp>)
 ;;        |  (set! <var> <exp>)
-;;        |  (let ([<var> <exp>] ...) <exp>)
+;;        |  (let ([<var> <exp>] ...) <exp> ...)
 ;;        |  (if <exp> <exp> <exp>)
 ;;        |  (lambda (<name> ...) <exp>)
+;;        |  (begin <exp> ...)
 ;;        |  <number>
 ;;        |  <boolean>
 ;;        |  <string>
@@ -43,10 +44,11 @@
 ;; <cexp> ::= (<aexp> <aexp> ...)
 ;;         |  (if <aexp> <exp> <exp>)
 ;;         |  (set! <var> <aexp>)
+;;         |  (begin <exp> ...)
 ;;         |  <aexp>
 ;;
 ;; <exp> ::= (let ([<var> <cexp>]) <dec> ... <exp>)
-;;        |  (let () <dec> ... <exp>)
+;;        |  (let () <dec> ... <exp> ...)
 ;;        |  <aexp>
 ;;        |  <cexp>
 
@@ -56,14 +58,16 @@
 
 ;; <var> ::= <string>
 
-;; <exp> ::= {type: "let", var: <var>, val: <cexp>, body: <exp>}
+;; <exp> ::= {type: "let", var: <var>, val: <cexp>, body: [<exp>]}
 ;;        |  <var-let>
 ;;        |  <aexp>
 ;;        |  <cexp>
 
-;; <var-let> ::= {type: "var-let", vars: [<var>], body: <exp>}
+;; <var-let> ::= {type: "var-let", vars: [<var>], body: [<exp>]}
 
+;; TODO: Fix grammar voor if (?)
 ;; <cexp> ::= {type: "if", test: <aexp>, consequent: <exp>, alternative: <exp>}
+;;         |  {type: "begin", body: [<exp>]}
 ;;         |  {type: "set", target: <var>, val: <aexp>}
 ;;         |  {type: "apl", operator: <aexp>, operands: [<aexp>]}
 ;;         |  <aexp>
@@ -84,6 +88,7 @@
 
 (provide do-read read-loop slip-expand slip-read)
 
+;; TODO: merge normalize and json generation
 ;; TODO: What about reading cons cells?
 
 ;;
@@ -129,13 +134,12 @@
 (define (normalize-let bindings body k)
   (define (helper bindings)
     (match bindings
-      ['()
-       ;; TODO: multiple exprs in body
-       (normalize-term body)]
       [`([,x ,exp] . ,clause)
        (normalize exp (lambda (aexp)
                         `(let ([,x ,aexp])
-                           ,(helper clause))))]))
+                           ,@(if (null? clause)
+                                 (map normalize-term body)
+                                 (list (helper clause))))))]))
   (push-scope!)
   (let* ([let (helper bindings)]
          [vars decls])
@@ -149,6 +153,9 @@
 ;; TODO: optimize excessive frames for define/set!
 (define (normalize exp k)
   (match exp
+   ;; [`(begin . ,body)
+   ;;  (k `(begin ,@(map normalize-term body)))]
+
     [`(lambda ,params . ,body)
      (push-scope!)
      (let* ([nt (map normalize-term body)]
@@ -159,17 +166,17 @@
                  `(define ,var '()))
              ,@nt)))]
 
-    [`(let () ,exp)
+    [`(let () . ,exps)
      (push-scope!)
-     (let* ([nt (normalize-term exp)]
+     (let* ([nt (map normalize-term exps)]
             [vars decls])
        (pop-scope!)
        (k `(let ()
              ,@(for/list ([var vars])
                  `(define ,var '()))
-             ,nt)))]
+             ,@nt)))]
 
-    [`(let ,bindings ,body)
+    [`(let ,bindings . ,body)
      ;; TODO: body with multiple exprs
      (normalize-let bindings body k)]
 
