@@ -104,10 +104,6 @@ class Let(AST):
         else:
             s_cont = SequenceContinuation(self._body[1:], env, cont)
             l_cont = LetContinuation(s_cont, self._sym, self._body[0], env)
-
-        # cont = LetContinuation(cont, self._sym, self._body, env)
-        # return self._val, env, cont
-
         return self._val, env, l_cont
 
     def __str__(self):

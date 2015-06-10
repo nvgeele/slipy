@@ -153,8 +153,8 @@
 ;; TODO: optimize excessive frames for define/set!
 (define (normalize exp k)
   (match exp
-   ;; [`(begin . ,body)
-   ;;  (k `(begin ,@(map normalize-term body)))]
+   [`(begin . ,body)
+    (k `(begin ,@(map normalize-term body)))]
 
     [`(lambda ,params . ,body)
      (push-scope!)
@@ -295,6 +295,7 @@
   (match exp
     [`(if . ,_) #t]
     [`(set! . ,_) #t]
+    [`(begin . ,_) #t]
     [(list aexps ...) (andmap aexp? aexps)]
     [else #f]))
 
@@ -391,6 +392,9 @@
      (hash 'type "set"
            'target (symbol->string var)
            'val (aexp->json aexp))]
+    [`(begin . ,exprs)
+     (hash 'type "begin"
+           'body (map exp->json exprs))]
     [`(,op . ,aexps)
      (hash 'type "apl"
            'operator (aexp->json op)

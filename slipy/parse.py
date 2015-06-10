@@ -86,6 +86,12 @@ def _parse_dict(dict):
         args = _vars_to_syms(dict['vars'].list_value())
         body = _parse_dict(dict['body'].object_value())
         return Lambda(args, body)
+    elif type == 'begin':
+        assert dict['body'].is_list
+        body = _parse_exp_list(dict['body'].list_value())
+        if len(body) == 0:
+            raise SlipException("Empty begin form is not allowed!")
+        return Sequence(body)
     elif type == 'quoted-list':
         # TODO: is list part of AST or a value that can be mutated?
         assert dict['val'].is_list

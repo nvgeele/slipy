@@ -9,7 +9,7 @@
                           ;;(pretty-print (jsexpr->string hash))
                           (void))
                         (lambda (input)
-                          (slip-expand input #:json #t))
+                          (slip-expand input #:json #f))
                         read
                         open-input-string))
 
@@ -26,16 +26,22 @@
 ;; "Tests" for slip-read
 ;;
 
-(helper2 "(if #t 1 2)")
-(helper2 "a")
-(helper2 "1")
-(helper2 "'a")
-(helper2 "'(1 2 3)")
+;;(helper2 "(if #t 1 2)")
+;;(helper2 "a")
+;;(helper2 "1")
+;;(helper2 "'a")
+;;(helper2 "'(1 2 3)")
 
 ;;
 ;; "Tests" for slip-expand
 ;;
 
+(helper "((let ((n (begin 1 2 3))) n))")
+;;(let () (define (fac n) (if (= 0 n) 1 (* n (fac (- n 1))))) (fac 10))
+;;(let () (define (loop) 1 2 3 4 5 (loop)) 1 2 3 4 5 (loop))
+;;(helper "(())")
+#;(helper "((let () 1 2 3))")
+#;(helper "((let ((n (begin 1 2 3))) n))")
 ;;(helper "((if #t (define x 1) 2))")
 ;;(helper "('a)")
 ;;(helper "((+ 1 'a))")
