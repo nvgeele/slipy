@@ -9,7 +9,7 @@ from slipy.util import raw_input, write, zip
 native_dict = {}
 
 # TODO: replace asserts with exceptions!!!
-# TODO: list
+# TODO: set-car!, set-cdr! + test with append if lists are copied properly
 
 # TODO: Fix type checking for RPython inferencing
 def declare_native(name, simple=True):
@@ -155,6 +155,45 @@ def displayln(args):
     assert len(args) == 1
     print args[0].to_display()
     return w_void
+
+
+# TODO: move to appropriate place
+def list_from_values(vals):
+    if len(vals) == 0:
+        return w_empty
+    else:
+        cur = w_empty
+        for i in range(len(vals)-1, -1, -1):
+            cur = W_Pair(vals[i], cur)
+        return cur
+
+
+@declare_native("list")
+def list(args):
+    return list_from_values(args)
+
+
+# TODO: move to appropriate place
+def values_from_list(pair):
+    result = []
+    curr = pair
+    while isinstance(curr, W_Pair):
+        result.append(curr.car())
+        curr = curr.cdr()
+    if curr is w_empty:
+        return result
+    else:
+        raise SlipException("Improper list")
+
+# TODO: Support more than 2 args
+@declare_native("append")
+def append(args):
+    assert len(args) == 2
+    assert isinstance(args[0], W_Pair)
+    assert isinstance(args[1], W_Pair)
+    v1 = values_from_list(args[0])
+    v2 = values_from_list(args[1])
+    return list_from_values(v1+v2)
 
 
 @declare_native("cons")
