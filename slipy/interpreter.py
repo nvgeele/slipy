@@ -4,7 +4,12 @@ from slipy.exceptions import EvaluationFinished
 from rpython.rlib import jit
 
 
-driver = jit.JitDriver(reds=["env", "cont"], greens=["ast"])
+def get_printable_location(ast):
+    return ast.to_string()
+
+
+driver = jit.JitDriver(reds=["env", "cont"], greens=["ast"],
+                       get_printable_location=get_printable_location)
 
 
 def initialize_global_env():

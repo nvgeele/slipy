@@ -22,6 +22,9 @@ class AST(object):
     def __str__(self):
         return "<AST>"
 
+    def to_string(self):
+        return self.__str__()
+
 
 class Application(AST):
     def __init__(self, operator, operands):
@@ -43,8 +46,11 @@ class Application(AST):
             return operator.call(operands, env, cont)
 
     def __str__(self):
-        rator_str = str(self._operator)
-        rands_str = " ".join(map(str, self._operands))
+        rator_str = self._operator.to_string()
+        rands_str = [None] * len(self._operands)
+        for i, op in enumerate(self._operands):
+            rands_str[i] = op.to_string()
+        rands_str = " ".join(rands_str)
         return "(%s %s)" % (rator_str, rands_str)
 
 
@@ -63,7 +69,9 @@ class If(AST):
             return self._alternative, env, cont
 
     def __str__(self):
-        return "(if %s %s %s)" % (self._test, self._consequent, self._alternative)
+        return "(if %s %s %s)" % \
+               (self._test.to_string(), self._consequent.to_string(),
+                self._alternative.to_string())
 
 
 class Lambda(AST):
@@ -77,8 +85,11 @@ class Lambda(AST):
         return W_Closure(self._args, env, self._body)
 
     def __str__(self):
-        args = " ".join(map(str, self._args))
-        return "(lambda (%s) %s)" % (args, self._body)
+        args = [None] * len(self._args)
+        for i, arg in enumerate(self._args):
+            args[i] = arg.to_string()
+        args = " ".join(args)
+        return "(lambda (%s) %s)" % (args, self._body.to_string())
 
 class Let(AST):
     def __init__(self, sym, val, body):
@@ -91,7 +102,8 @@ class Let(AST):
         return self._val, env, cont
 
     def __str__(self):
-        return "(let ([%s %s]) %s)" % (self._sym, self._val, self._body)
+        return "(let ([%s %s]) %s)" %\
+               (self._sym.to_string(), self._val.to_string(), self._body.to_string())
 
 
 class SetBang(AST):
@@ -109,7 +121,7 @@ class SetBang(AST):
         return val
 
     def __str__(self):
-        return "(set! %s %s)" % (self._sym, self._val)
+        return "(set! %s %s)" % (self._sym.to_string(), self._val.to_string())
 
 
 class Sequence(AST):
@@ -124,7 +136,10 @@ class Sequence(AST):
             return self._exprs[0], env, cont
 
     def __str__(self):
-        exprs = " ".join(map(str, self._exprs))
+        exprs = [None] * len(self._exprs)
+        for i, exp in enumerate(self._exprs):
+            exprs[i] = exp.to_string()
+        exprs = " ".join(exprs)
         return "(begin %s)" % exprs
 
 
@@ -145,8 +160,14 @@ class VarLet(AST):
             return self._body[0], new_env, cont
 
     def __str__(self):
-        decls = " ".join(map(str, self._vars))
-        exprs = " ".join(map(str, self._body))
+        decls = [None] * len(self._vars)
+        for i, var in enumerate(self._vars):
+            decls[i] = var.to_string()
+        exprs = [None] * len(self._body)
+        for i, exp in enumerate(self._body):
+            exprs[i] = exp.to_string()
+        decls = " ".join(decls)
+        exprs = " ".join(exprs)
         return "(let-var (%s) %s)" % (decls, exprs)
 
 
@@ -164,7 +185,7 @@ class VarRef(AST):
         return val
 
     def __str__(self):
-        return str(self._sym)
+        return self._sym.to_string()
 
 
 class Quote(AST):
@@ -178,6 +199,6 @@ class Quote(AST):
 
     def __str__(self):
         if isinstance(self._val, W_Symbol) or isinstance(self._val, W_Pair):
-            return "'%s" % str(self._val)
+            return "'%s" % self._val.to_string()
         else:
-            return str(self._val)
+            return self._val.to_string()
