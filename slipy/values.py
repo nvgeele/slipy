@@ -281,7 +281,10 @@ class W_Continuation(W_Callable):
     def call(self, args, env, cont):
         from slipy.interpreter import return_value_direct
         # TODO: deal with too much args etc
-        return return_value_direct(args[0], env, self._cont)
+        if args:
+            return return_value_direct(args[0], env, self._cont)
+        else:
+            return return_value_direct(w_void, env, self._cont)
 
     def __str__(self):
         return "#<continuation>"
