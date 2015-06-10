@@ -25,11 +25,12 @@ def main(argv):
         print "Slip error: %s" % e.message
         raise
     except Exception, e:
-        if we_are_translated():
-            print "Caught an exception!"
-            raise
-        else:
-            print e
+        print "Caught an exception!"
+        raise
+        # if we_are_translated():
+        #     raise
+        # else:
+        #     print e
 
     return 0
 

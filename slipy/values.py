@@ -20,6 +20,9 @@ class W_SlipObject(object):
     def to_string(self):
         return self.__str__()
 
+    def to_display(self):
+        return self.__str__()
+
 
 class W_Pair(W_SlipObject):
     # TODO: set! operations
@@ -199,6 +202,9 @@ class W_String(W_SlipObject):
         self._str = str
 
     def __str__(self):
+        return "\"%s\"" % self._str
+
+    def to_display(self):
         return self._str
 
 

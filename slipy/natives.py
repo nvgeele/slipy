@@ -8,6 +8,7 @@ from slipy.util import raw_input, write, zip
 
 native_dict = {}
 
+# TODO: exact->inexact
 # TODO: Fix type checking for RPython inferencing
 # TODO: replace asserts with exceptions!!!
 def declare_native(name, simple=True):
@@ -137,14 +138,14 @@ def slip_time(args):
 @declare_native("display")
 def display(args):
     assert len(args) == 1
-    write(args[0].to_string())
+    write(args[0].to_display())
     return w_void
 
 
 @declare_native("displayln")
-def display(args):
+def displayln(args):
     assert len(args) == 1
-    print args[0].to_string()
+    print args[0].to_display()
     return w_void
 
 
@@ -169,6 +170,23 @@ def cdr(args):
     assert len(args) == 1
     assert isinstance(args[0], W_Pair)
     return args[0].cdr()
+
+
+@declare_native("length")
+def list_length(args):
+    assert len(args) == 1
+    assert isinstance(args[0], W_Pair)
+    length = 1
+    cur = args[0]
+    while True:
+        cdr = cur.cdr()
+        if isinstance(cdr, W_Pair):
+            cur = cdr
+            length += 1
+        elif cdr is w_empty:
+            return W_Integer(length)
+        else:
+            raise SlipException("Argument not a list!")
 
 
 @declare_native("read")
