@@ -395,11 +395,11 @@
   (match exp
     [`(let () . ,body)
      (var-let->json body)]
-    [`(let ([,var ,cexp]) ,body)
+    [`(let ([,var ,cexp]) . ,body)
      (hash 'type "let"
            'var (symbol->string var)
            'val (cexp->json cexp)
-           'body (exp->json body))]
+           'body (map exp->json body))]
     [(? aexp?)
      (aexp->json exp)]
     [(? cexp?)
