@@ -33,7 +33,11 @@ class LetContinuation(Continuation):
     def cont(self, val, env):
         new_env = Env(previous=self._env)
         new_env.add_var(self._var, val)
-        return self._body, new_env, self._prev
+        if len(self._body) == 1:
+            cont = self._prev
+        else:
+            cont = SequenceContinuation(self._body[1:], new_env, self._prev)
+        return self._body[0], new_env, cont
 
     def depth(self):
         return 1 + self._prev.depth()

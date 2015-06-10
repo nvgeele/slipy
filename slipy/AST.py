@@ -99,11 +99,7 @@ class Let(AST):
         self._body = body
 
     def eval(self, env, cont):
-        if len(self._body) == 1:
-            l_cont = LetContinuation(cont, self._sym, self._body[0], env)
-        else:
-            s_cont = SequenceContinuation(self._body[1:], env, cont)
-            l_cont = LetContinuation(s_cont, self._sym, self._body[0], env)
+        l_cont = LetContinuation(cont, self._sym, self._body, env)
         return self._val, env, l_cont
 
     def __str__(self):
