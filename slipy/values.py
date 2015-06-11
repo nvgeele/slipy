@@ -108,6 +108,12 @@ class W_Number(W_SlipObject):
     def is_eq(self, other):
         raise Exception("abstract method")
 
+    def lt(self, other):
+        raise Exception("abstract method")
+
+    def gt(self, other):
+        raise Exception("abstract method")
+
 
 class W_Integer(W_Number):
     _imutable_fields_ = ["_val"]
@@ -151,7 +157,19 @@ class W_Integer(W_Number):
         if isinstance(other, W_Integer):
             return self._val == other.value()
         else:
-            return False
+            return other.is_eq(self)
+
+    def lt(self, other):
+        if isinstance(other, W_Integer):
+            return self._val < other.value()
+        else:
+            return other.gt(self)
+
+    def gt(self, other):
+        if isinstance(other, W_Integer):
+            return self._val > other.value()
+        else:
+            return other.lt(self)
 
 
 class W_Float(W_Number):
@@ -196,7 +214,19 @@ class W_Float(W_Number):
         if isinstance(other, W_Float):
             return self._val == other.value()
         else:
-            return False
+            return self._val == float(other.value())
+
+    def lt(self, other):
+        if isinstance(other, W_Float):
+            return self._val < other.value()
+        else:
+            return self._val < float(other.value())
+
+    def gt(self, other):
+        if isinstance(other, W_Float):
+            return self._val > other.value()
+        else:
+            return self._val > float(other.value())
 
 
 class W_Boolean(W_SlipObject):

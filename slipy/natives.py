@@ -111,6 +111,38 @@ def num_equal(args):
     return W_Boolean.from_value(v)
 
 
+@declare_native("<") #, arguments=W_Number)
+def num_lt(args):
+    assert len(args) >= 2
+    i = 2
+    v = True
+    while i <= len(args):
+        l, r = args[i-2], args[i-1]
+        assert isinstance(l, W_Number)
+        assert isinstance(r, W_Number)
+        v = v and l.lt(r)
+        if not v:
+            return w_false
+        i += 1
+    return W_Boolean.from_value(v)
+
+
+@declare_native(">") #, arguments=W_Number)
+def num_lt(args):
+    assert len(args) >= 2
+    i = 2
+    v = True
+    while i <= len(args):
+        l, r = args[i-2], args[i-1]
+        assert isinstance(l, W_Number)
+        assert isinstance(r, W_Number)
+        v = v and l.gt(r)
+        if not v:
+            return w_false
+        i += 1
+    return W_Boolean.from_value(v)
+
+
 @declare_native("exact->inexact")
 def exact_inexact(args):
     assert len(args) == 1
