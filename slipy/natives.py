@@ -157,6 +157,18 @@ def displayln(args):
     return w_void
 
 
+@declare_native("newline")
+def newline(args):
+    assert len(args) == 0
+    print ""
+    return w_void
+
+
+@declare_native("void")
+def void(args):
+    return w_void
+
+
 # TODO: move to appropriate place
 def list_from_values(vals):
     if len(vals) == 0:
