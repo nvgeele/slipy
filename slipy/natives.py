@@ -35,6 +35,12 @@ def declare_native(name, simple=True):
     return wrapper
 
 
+@declare_native("not")
+def is_not(args):
+    assert len(args) == 1
+    return W_Boolean.from_value(args[0] is w_false)
+
+
 @declare_native("+") #, arguments=W_Number)
 def plus(args):
     if len(args) == 0:
