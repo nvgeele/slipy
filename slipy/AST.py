@@ -1,3 +1,4 @@
+from rpython.rlib import jit
 from slipy.continuation import *
 from slipy.environment import Env
 from slipy.exceptions import SlipException
@@ -34,6 +35,7 @@ class Application(AST):
         self._operator = operator
         self._operands = operands
 
+    @jit.unroll_safe
     def eval(self, env, cont):
         # Operator & operands are aexps, thus simple
         operator = self._operator.eval_simple(env)
@@ -153,6 +155,7 @@ class VarLet(AST):
         self._vars = vars
         self._body = exprs
 
+    @jit.unroll_safe
     def eval(self, env, cont):
         new_env = Env(previous=env)
         for var in self._vars:

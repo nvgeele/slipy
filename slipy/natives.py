@@ -1,4 +1,5 @@
 import time
+from rpython.rlib import jit
 from slipy.exceptions import EvaluationFinished
 from slipy.parse import parse_data, parse_ast
 from slipy.read import read_string, expand_string
@@ -29,7 +30,7 @@ def declare_native(name, simple=True):
         sym = W_Symbol.from_string(name)
         native = W_NativeFunction(inner)
         native_dict[sym] = native
-        inner.func_name = "%s_wrapped" % name
+        inner.func_name = "%s_wrapped" % func.func_name
         return inner
 
     return wrapper
@@ -42,6 +43,7 @@ def is_not(args):
 
 
 @declare_native("+") #, arguments=W_Number)
+@jit.unroll_safe
 def plus(args):
     if len(args) == 0:
         return W_Integer(0)
@@ -57,6 +59,7 @@ def plus(args):
 
 
 @declare_native("-") #, arguments=W_Number)
+@jit.unroll_safe
 def minus(args):
     if len(args) == 0:
         return W_Integer(0)
@@ -72,6 +75,7 @@ def minus(args):
 
 
 @declare_native("*") #, arguments=W_Number)
+@jit.unroll_safe
 def multiply(args):
     if len(args) == 0:
         return W_Integer(1)
@@ -87,6 +91,7 @@ def multiply(args):
 
 
 @declare_native("/") #, arguments=W_Number)
+@jit.unroll_safe
 def divide(args):
     if len(args) == 0:
         return W_Integer(1)
@@ -102,6 +107,7 @@ def divide(args):
 
 
 @declare_native("=") #, arguments=W_Number)
+@jit.unroll_safe
 def num_equal(args):
     assert len(args) >= 2
     i = 2
@@ -118,6 +124,7 @@ def num_equal(args):
 
 
 @declare_native("<") #, arguments=W_Number)
+@jit.unroll_safe
 def num_lt(args):
     assert len(args) >= 2
     i = 2
@@ -134,6 +141,7 @@ def num_lt(args):
 
 
 @declare_native(">") #, arguments=W_Number)
+@jit.unroll_safe
 def num_lt(args):
     assert len(args) >= 2
     i = 2
@@ -162,6 +170,7 @@ def apply(args, env, cont):
     assert isinstance(fn, W_Callable)
     assert isinstance(args[1], W_Pair)
     try:
+        # TODO: vals_from_list
         actual_args = from_list(args[1])
     except SlipException:
         raise SlipException("apply: expected list")
@@ -208,6 +217,7 @@ def void(args):
 
 
 # TODO: move to appropriate place
+@jit.unroll_safe
 def list_from_values(vals):
     if len(vals) == 0:
         return w_empty
@@ -268,6 +278,7 @@ def cdr(args):
 
 
 @declare_native("length")
+@jit.unroll_safe
 def list_length(args):
     assert len(args) == 1
     assert isinstance(args[0], W_Pair)

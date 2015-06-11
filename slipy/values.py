@@ -1,3 +1,4 @@
+from rpython.rlib import jit
 from slipy.environment import Env
 from slipy.exceptions import *
 from slipy.continuation import *
@@ -60,6 +61,7 @@ class W_Vector(W_SlipObject):
         self._values = values
         self.length = length
 
+    # TODO: Unroll safe?
     @staticmethod
     def make(length, val):
         vals = [val] * length
@@ -291,6 +293,7 @@ class W_Closure(W_Callable):
         self._env = env
         self._body = body
 
+    @jit.unroll_safe
     def call(self, args, env, cont):
         # TODO: stuff like len calls could be optimized maybe?
         if len(args) != len(self._args):
