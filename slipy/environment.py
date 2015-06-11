@@ -32,10 +32,16 @@ class Env(object):
             raise SlipException("var `%s' not found" % id.to_string())
 
     def add_var(self, sym, val):
+        # if sym in self._bindings:
+        #     raise Exception("Can not overwrite binding")
+        # c = Cell(val)
+        # self._bindings[sym] = c
         if sym in self._bindings:
-            raise Exception("Can not overwrite binding")
-        c = Cell(val)
-        self._bindings[sym] = c
+            c = self._bindings[sym]
+            c.set_value(val)
+        else:
+            c = Cell(val)
+            self._bindings[sym] = c
 
     def __str__(self):
         keys = " ".join(map(str, self._bindings.keys()))
