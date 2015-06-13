@@ -56,12 +56,22 @@ class Application(AST):
         return "(%s %s)" % (rator_str, rands_str)
 
 
-# TODO: Optimize VarLets away if vars are empty.
 class If(AST):
     def __init__(self, test, consequent, alternative):
         self._test = test
-        self._consequent = consequent
-        self._alternative = alternative
+        # TODO: move this "optimization" to parse?
+        if isinstance(consequent, VarLet) and \
+                len(consequent.vars) == 0 and \
+                len(consequent.body) == 1:
+            self._consequent = consequent.body[0]
+        else:
+            self._consequent = consequent
+        if isinstance(alternative, VarLet) and \
+                len(alternative.vars) == 0 and \
+                len(alternative.body) == 1:
+            self._alternative = alternative.body[0]
+        else:
+            self._alternative = alternative
 
     def eval(self, env, cont):
         # Test is an aexp, i.e. simple
@@ -152,27 +162,27 @@ class Sequence(AST):
 
 class VarLet(AST):
     def __init__(self, vars, exprs):
-        self._vars = vars
-        self._body = exprs
+        self.vars = vars
+        self.body = exprs
 
     @jit.unroll_safe
     def eval(self, env, cont):
         new_env = Env(previous=env)
-        for var in self._vars:
+        for var in self.vars:
             assert isinstance(var, W_Symbol)
             new_env.add_var(var, w_undefined)
-        if len(self._body) == 1:
-            return self._body[0], new_env, cont
+        if len(self.body) == 1:
+            return self.body[0], new_env, cont
         else:
-            cont = SequenceContinuation(self._body[1:], new_env, cont)
-            return self._body[0], new_env, cont
+            cont = SequenceContinuation(self.body[1:], new_env, cont)
+            return self.body[0], new_env, cont
 
     def __str__(self):
-        decls = [None] * len(self._vars)
-        for i, var in enumerate(self._vars):
+        decls = [None] * len(self.vars)
+        for i, var in enumerate(self.vars):
             decls[i] = var.to_string()
-        exprs = [None] * len(self._body)
-        for i, exp in enumerate(self._body):
+        exprs = [None] * len(self.body)
+        for i, exp in enumerate(self.body):
             exprs[i] = exp.to_string()
         decls = " ".join(decls)
         exprs = " ".join(exprs)
