@@ -8,6 +8,7 @@ from slipy.util import raw_input, write, zip
 
 
 native_dict = {}
+simple_natives = []
 
 # TODO: replace asserts with exceptions!!!
 # TODO: set-car!, set-cdr! + test with append if lists are copied properly
@@ -30,9 +31,10 @@ def declare_native(name, simple=True):
         sym = W_Symbol.from_string(name)
         native = W_NativeFunction(inner)
         native_dict[sym] = native
+        if simple:
+            simple_natives.append(sym)
         inner.func_name = "%s_wrapped" % func.func_name
         return inner
-
     return wrapper
 
 
