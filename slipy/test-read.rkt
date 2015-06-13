@@ -36,7 +36,12 @@
 ;; "Tests" for slip-expand
 ;;
 
-(helper "((let ((n (begin 1 2 3))) n))")
+(helper "((if (+ 1 2) #t #f))")
+;;(helper "((+ 1 2 3 (+ 2 3) 4 5))")
+;;(helper "((let ((n (let ((y 2)(x 3)) (+ x y)))) (* n n)))")
+;;(helper "((let ((x 1) (y (* x x))) y))")
+;;(let () 1 2 3 4 (define (loop) 1 2 3 4 5 (loop)) 1 2 (loop) 4 5)
+;;(helper "((let ((n (begin 1 2 3))) n))")
 ;;(let () (define (fac n) (if (= 0 n) 1 (* n (fac (- n 1))))) (fac 10))
 ;;(let () (define (loop) 1 2 3 4 5 (loop)) 1 2 3 4 5 (loop))
 ;;(helper "(())")

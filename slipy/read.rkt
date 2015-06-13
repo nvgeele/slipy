@@ -90,6 +90,7 @@
 
 ;; TODO: merge normalize and json generation
 ;; TODO: What about reading cons cells?
+;; TODO: Change the way let expressions are normalised
 
 ;;
 ;; Helper functions
@@ -116,7 +117,7 @@
 ;; The code had to be changed to support define and set! as expressions.
 
 (define primitives
-  '(+ - * / =))
+  '(not + - * / = < > exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set!))
 
 (define (atomic? exp)
   (match exp
@@ -131,6 +132,10 @@
     ;; TODO: remove this primitives thing
     [else (or (member exp primitives) #f)]))
 
+;; Currently, all let's are actually let*'s
+;; If this behaviour is not wanted, we must allow the grammar to allow
+;; let's with multiple bindings.
+;; A letrec could be implemented using a var-let
 (define (normalize-let bindings body k)
   (define (helper bindings)
     (match bindings
