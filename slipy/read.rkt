@@ -325,7 +325,7 @@
             [bindings (for/list ([binding bindings])
                         `(,(car binding)
                           ,(lexical-address* (cadr binding) new-frame)))])
-       `(let (,bindings)
+       `(let ,bindings
           ,vars
           ,@(map (lambda (e) (lexical-address* e new-frame)) body)))]
     [`(lambda ,params ,vars . ,body)
@@ -370,7 +370,9 @@
     [(? boolean?) #t]
     [(? string?) #t]
     [(? char?) #t]
-    [(? symbol?) #t]
+    [(? ref?) #t]
+    ;; TODO: remove symbol?
+    ;; [(? symbol?) #t]
     ['() #t]
     [else #f]))
 
@@ -381,11 +383,6 @@
     [`(begin . ,_) #t]
     [(list aexps ...) (andmap aexp? aexps)]
     [else #f]))
-
-(define (lambda->json vars body)
-  (hash 'type "lambda"
-        'vars (map symbol->string vars)
-        'body (var-let->json body)))
 
 (define (list->json list)
   (match list
@@ -413,25 +410,24 @@
                     'val (symbol->string e))])
            (list->json rest))]))
 
-(define (var-let->json body)
-  ;; TODO: is de body wel correct
-  (define (helper exp vars exps)
-    (match exp
-      [(cons `(define ,var '()) rest)
-       (helper rest (cons var vars) exps)]
-      [(cons exp '())
-       (values (reverse (cons (exp->json exp) exps)) vars)]
-      [(cons exp rest)
-       (helper rest vars (cons (exp->json exp) exps))]))
-  (let-values ([(exps vars) (helper body '() '())])
-    (hash 'type "var-let"
-          'vars (map symbol->string vars)
-          'body exps)))
+(define (ref->json ref)
+  (cond ((nat-ref? ref)
+         (hash 'type "nat-ref"
+               'symbol (symbol->string (nat-ref-symbol ref))))
+        ((lex-ref? ref)
+         (hash 'type "lex-ref"
+               'scope (lex-ref-scope ref)
+               'offset (lex-ref-offset ref)
+               'symbol (symbol->string (lex-ref-symbol ref))))
+        (else (error "not a ref"))))
 
 (define (aexp->json aexp)
   (match aexp
-    [`(lambda ,vars . ,body)
-     (lambda->json vars body)]
+    [`(lambda ,params ,vars . ,body)
+     (hash 'type "lambda"
+           'params (map symbol->string params)
+           'vars (map symbol->string vars)
+           'body (map exp->json body))]
     [`(quote ,x)
      (if (list? x)
          (hash 'type "quoted-list"
@@ -451,9 +447,11 @@
     [(? char?)
      (hash 'type "char"
            'val aexp)]
-    [(? symbol?)
-     (hash 'type "var"
-           'val (symbol->string aexp))]
+    [(? ref?)
+     (ref->json aexp)]
+    ;; TODO: Remove symbol?
+    ;; [(? symbol?)
+    ;;  (error "Symbol not expected here")]
     ['()
      (hash 'type "quoted-list"
            'val '())]
@@ -461,9 +459,6 @@
 
 (define (cexp->json cexp)
   (match cexp
-    ;; If lambda is an operator in an application, well, though break
-    ;; In SLIP this is also the case.
-    ;; TODO: Maybe put lambdas in evaluator as macro/native?
     [(? aexp?)
      (aexp->json cexp)]
     [`(if ,aexp ,exp1 ,exp2)
@@ -473,7 +468,7 @@
            'alternative (exp->json exp2))]
     [`(set! ,var ,aexp)
      (hash 'type "set"
-           'target (symbol->string var)
+           'target (ref->json var)
            'val (aexp->json aexp))]
     [`(begin . ,exprs)
      (hash 'type "begin"
@@ -486,12 +481,11 @@
 
 (define (exp->json exp)
   (match exp
-    [`(let () . ,body)
-     (var-let->json body)]
-    [`(let ([,var ,cexp]) . ,body)
+    [`(let ,bindings ,vars . ,body)
      (hash 'type "let"
-           'var (symbol->string var)
-           'val (cexp->json cexp)
+           'vars (map (compose symbol->string car) bindings)
+           'vals (map (compose exp->json cadr) bindings)
+           'decls (map symbol->string vars)
            'body (map exp->json body))]
     [(? aexp?)
      (aexp->json exp)]
@@ -499,18 +493,9 @@
      (cexp->json exp)]
     [else (error (~a "Malformed expression: " exp))]))
 
-;; TODO: check all orders of exp lists
 (define (prog->json prog)
-  (define (helper vars exps prog)
-    (match prog
-      ['()
-       (hash 'vars (map symbol->string vars)
-             'exps (reverse exps))]
-      [(cons `(define ,var '()) rest)
-       (helper (cons var vars) exps rest)]
-      [(cons exp rest)
-       (helper vars (cons (exp->json exp) exps) rest)]))
-  (helper '() '() prog))
+  (hash 'vars (map symbol->string (car prog))
+        'exps (map exp->json (cdr prog))))
 
 ;;
 ;; Read code
@@ -524,7 +509,7 @@
       (car (list->json (list s-exp)))))
 
 (define (slip-expand exp #:json [json #f])
-  (let ([res (normalize-program exp)])
+  (let ([res (lexical-address (normalize-program exp))])
     ;;(pretty-print res)
     (if json
         (prog->json res)
