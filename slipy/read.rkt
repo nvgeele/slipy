@@ -119,7 +119,7 @@
 ;; The code had to be changed to support define and set! as expressions.
 
 (define primitives
-  '(not + - * / = < > exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set!))
+  '(not + - * / = < > exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set! void apply eval))
 
 (define (atomic? exp)
   (match exp
@@ -258,10 +258,7 @@
                          (normalize-name* e* (lambda (t*)
                                                (k `(,t . ,t*))))))]
     [`()
-     (k '())]
-
-    [else
-     (error "How about wow")]))
+     (k '())]))
 
 (define (normalize-name exp k)
   (normalize exp
@@ -289,6 +286,77 @@
   (clear-stack!)
   (let ([transformed (map normalize-term exps)])
     (cons decls transformed)))
+
+;;
+;; Lexical Addressing
+;;
+
+(struct frame (scope bindings previous)
+        #:transparent)
+(struct ref ())
+(struct lex-ref ref (symbol scope offset)
+        #:transparent)
+(struct nat-ref ref (symbol)
+        #:transparent)
+
+(define (make-frame vars previous)
+  (frame (if previous
+             (+ 1 (frame-scope previous))
+             1)
+         (for/hash ([v vars]
+                    [o (range 0 (length vars))])
+           (values v o))
+         previous))
+
+(define (get-address frame symbol)
+  (define h (frame-bindings frame))
+  (define o (hash-ref h symbol #f))
+  (cond [o (lex-ref symbol (frame-scope frame) o)]
+        [(frame-previous frame)
+         (get-address (frame-previous frame) symbol)]
+        [(member symbol primitives)
+         (nat-ref symbol)]
+        [else symbol]))
+
+(define (lexical-address* exp frame)
+  (match exp
+    [`(let ,bindings ,vars . ,body)
+     (let* ([new-frame (make-frame (append (map car bindings) vars) frame)]
+            [bindings (for/list ([binding bindings])
+                        `(,(car binding)
+                          ,(lexical-address* (cadr binding) new-frame)))])
+       `(let (,bindings)
+          ,vars
+          ,@(map (lambda (e) (lexical-address* e new-frame)) body)))]
+    [`(lambda ,params ,vars . ,body)
+     (let* ([new-frame (make-frame (append params vars) frame)])
+       `(lambda ,params
+          ,vars
+          ,@(map (lambda (e) (lexical-address* e new-frame)) body)))]
+    [`(if ,test ,con ,alt)
+     `(if (get-address frame test)
+          (lexical-address* con frame)
+          (lexical-address* alt frame))]
+    [`(set! ,var ,aexp)
+     `(set! ,(lexical-address* var frame)
+        ,(lexical-address* aexp frame))]
+    [`(begin . ,exps)
+     (map (lambda (e) (lexical-address* e frame)) exps)]
+    [`(,rator . ,rands)
+     `(,(let ([ref (get-address frame rator)])
+          (if (eq? 'quote 'ref)
+              'quote
+              ref))
+       ,@(map (lambda (e) (lexical-address* e frame)) rands))]
+    [(? symbol?)
+     (get-address frame exp)]
+    [else exp]))
+
+(define (lexical-address program)
+  (let ([frame (make-frame (car program) #f)])
+    (cons (car program)
+          (map (lambda (e) (lexical-address* e frame))
+               (cdr program)))))
 
 ;;
 ;; JSON serialization
