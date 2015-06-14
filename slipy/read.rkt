@@ -30,9 +30,9 @@
 
 ;; <prog> ::= <dec> ... <exp> ...
 ;;
-;; <dec> ::= (define <var> '())
+;; <dec> ::= <var>
 ;;
-;; <aexp> ::= (lambda (<name> ...) <dec> ... <exp>)
+;; <aexp> ::= (lambda (<name> ...) (<dec>*) <exp>+)
 ;;         |  <number>
 ;;         |  <boolean>
 ;;         |  <string>
@@ -41,14 +41,13 @@
 ;;         |  <quoted list>
 ;;         |  (void)
 ;;
-;; <cexp> ::= (<aexp> <aexp> ...)
+;; <cexp> ::= (<aexp> <aexp>*)
 ;;         |  (if <aexp> <exp> <exp>)
 ;;         |  (set! <var> <aexp>)
 ;;         |  (begin <exp> ...)
 ;;         |  <aexp>
 ;;
-;; <exp> ::= (let ([<var> <cexp>]) <dec> ... <exp>)
-;;        |  (let () <dec> ... <exp> ...)
+;; <exp> ::= (let ([<var> <cexp>]*) (<dec>*) <exp>+)
 ;;        |  <aexp>
 ;;        |  <cexp>
 
@@ -86,7 +85,8 @@
                     (primitive? rkt-primitive?))
          json)
 
-(provide do-read read-loop slip-expand slip-read)
+#;(provide do-read read-loop slip-expand slip-read)
+(provide (all-defined-out))
 
 ;; TODO: merge normalize and json generation
 ;; TODO: What about reading cons cells?
@@ -105,8 +105,10 @@
   (set! stack (cons decls stack))
   (set! decls '()))
 (define (pop-scope!)
-  (set! decls (car stack))
-  (set! stack (cdr stack)))
+  (let ([vars decls])
+    (set! decls (car stack))
+    (set! stack (cdr stack))
+    vars))
 (define (clear-scope!)
   (set! decls '()))
 (define (clear-stack!)
@@ -128,94 +130,94 @@
     ;; TODO: does slip have chars?
     [(? char?) #t]
     [(? symbol?) #t]
-    ;;[(or '+ '- '* '/ '=) #t]
-    ;; TODO: remove this primitives thing
+    ;; TODO: are primitives necessary?
     [else (or (member exp primitives) #f)]))
 
-;; Currently, all let's are actually let*'s
-;; If this behaviour is not wanted, we must allow the grammar to allow
-;; let's with multiple bindings.
-;; A letrec could be implemented using a var-let
+(define (contract-let exp)
+  (define (inner exp bindings)
+    (match exp
+      [`(let (,binding) ,body)
+       (inner body (cons binding bindings))]
+      [else
+       `(let (,@(reverse bindings)) ,exp)]))
+  (inner exp '()))
+
+;; Returns all items that are exclusively in l2
+(define (djl l1 l2)
+  (let ([s1 (list->set l1)]
+        [s2 (list->set l2)])
+    (set->list (set-subtract s2 s1))))
+
 (define (normalize-let bindings body k)
-  (define (helper bindings)
-    (match bindings
-      [`([,x ,exp] . ,clause)
-       (normalize exp (lambda (aexp)
-                        `(let ([,x ,aexp])
-                           ,@(if (null? clause)
-                                 (map normalize-term body)
-                                 (list (helper clause))))))]))
+  (define vars (map car bindings))
+  (define exps (map cadr bindings))
   (push-scope!)
-  (let* ([let (helper bindings)]
-         [vars decls])
-    (pop-scope!)
-    `(let ()
-       ,@(for/list ([var vars])
-           `(define ,var '()))
-       ,let)))
+  (define e
+    (contract-let
+     (foldr (lambda (var b-exp exp)
+              (normalize b-exp
+                         (lambda (aexp)
+                           `(let ([,var ,aexp])
+                              ,exp))))
+            '()
+            vars
+            exps)))
+  (match e
+    [`(let ,bindings ())
+     (let ([body (map normalize-term body)])
+       (k `(let ,bindings
+             ,(djl vars (pop-scope!))
+             ,@body)))]))
 
 ;; TODO: test (lambda x x)
 ;; TODO: optimize excessive frames for define/set!
 (define (normalize exp k)
   (match exp
-   [`(begin . ,body)
-    (k `(begin ,@(map normalize-term body)))]
+    [`(begin . ,body)
+     (k `(begin ,@(map normalize-term body)))]
 
     [`(lambda ,params . ,body)
      (push-scope!)
-     (let* ([nt (map normalize-term body)]
-            [vars decls])
-       (pop-scope!)
+     (let ([nt (map normalize-term body)])
        (k `(lambda ,params
-             ,@(for/list ([var vars])
-                 `(define ,var '()))
+             ,(djl params (pop-scope!))
              ,@nt)))]
 
     [`(let () . ,exps)
      (push-scope!)
-     (let* ([nt (map normalize-term exps)]
-            [vars decls])
-       (pop-scope!)
+     (let* ([nt (map normalize-term exps)])
        (k `(let ()
-             ,@(for/list ([var vars])
-                 `(define ,var '()))
+             ,(pop-scope!)
              ,@nt)))]
 
     [`(let ,bindings . ,body)
-     ;; TODO: body with multiple exprs
      (normalize-let bindings body k)]
 
 
     [`(if ,exp1 ,exp2 ,exp3)
      ;; TODO: Improve this horrible code
-     (let-values ([(con vars1)
-                   (begin
-                     (push-scope!)
-                     (let ([e (normalize-term exp2)]
-                           [vars decls])
-                       (pop-scope!)
-                       (values e vars)))]
-                  [(alt vars2)
-                   (begin
-                     (push-scope!)
-                     (let ([e (normalize-term exp3)]
-                           [vars decls])
-                       (pop-scope!)
-                       (values e vars)))])
-       (normalize-name exp1 (lambda (t)
-                              (k `(if ,t
-                                      ,(if (= (length vars1) 0)
-                                           con
-                                           `(let ()
-                                              ,@(for/list ([var vars1])
-                                                  `(define ,var '()))
-                                              ,con))
-                                      ,(if (= (length vars2) 0)
-                                           alt
-                                           `(let ()
-                                              ,@(for/list ([var vars2])
-                                                  `(define ,var '()))
-                                              ,alt)))))))]
+     ;; Note how we assume arguments are eval'd l->r
+     (let-values ([(con vars1) (begin
+                                 (push-scope!)
+                                 (values (normalize-term exp2)
+                                         (pop-scope!)))]
+                  [(alt vars2) (begin (push-scope!)
+                                      (values (normalize-term exp3)
+                                              (pop-scope!)))])
+       (normalize-name
+        exp1
+        (lambda (t)
+          (k `(if ,t
+                  ,(if (= (length vars1) 0)
+                       con
+                       `(let ()
+                          ,vars1
+                          ,con))
+                  ,(if (= (length vars2) 0)
+                       alt
+                       `(let ()
+                          ,vars2
+                          ,alt)))))))]
 
     [`(set! ,v ,exp)
      (normalize-name exp (lambda (t)
@@ -264,21 +266,10 @@
   (normalize exp (lambda (k) k)))
 
 (define (normalize-program exps)
-  (define (helper exps)
-    (match exps
-      ['()
-       '()]
-      [(cons exp rest)
-       (cons (normalize-term exp)
-             (helper rest))]))
   (clear-scope!)
   (clear-stack!)
-  (let ([transformed (helper exps)])
-    `(,@(for/list ([var decls])
-          `(define ,var '()))
-      ,@(if (eq? (car transformed) 'begin)
-            (cdr transformed)
-            transformed))))
+  (let ([transformed (map normalize-term exps)])
+    (cons decls transformed)))
 
 ;;
 ;; JSON serialization
