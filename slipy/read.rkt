@@ -133,20 +133,33 @@
     ;; TODO: are primitives necessary?
     [else (or (member exp primitives) #f)]))
 
-(define (contract-let exp)
-  (define (inner exp bindings)
-    (match exp
-      [`(let (,binding) ,body)
-       (inner body (cons binding bindings))]
-      [else
-       `(let (,@(reverse bindings)) ,exp)]))
-  (inner exp '()))
-
 ;; Returns all items that are exclusively in l2
 (define (djl l1 l2)
   (let ([s1 (list->set l1)]
         [s2 (list->set l2)])
     (set->list (set-subtract s2 s1))))
+
+(define (contract-let exp)
+  (define (inner exp bindings all-vars)
+    (match exp
+      [`(let (,binding) ,vars ,body)
+       (inner body (cons binding bindings) (cons vars all-vars))]
+      [`(let (,binding) ,vars . ,body)
+       (let ((bindings (cons binding bindings)))
+         `(let (,@(reverse bindings))
+            ,(djl (map car bindings) (flatten all-vars))
+            ,@body))]
+      [`(let (,binding . ,rest) ,vars . ,body)
+       (inner `(let (,@rest) ,vars ,@body)
+              (cons binding bindings)
+              all-vars)]
+      [else
+       `(let (,@(reverse bindings))
+          ,(djl (map car bindings) (flatten all-vars))
+          ,exp)]))
+  (if (and (list? exp) (eq? (car exp) 'let))
+      (inner exp '() '())
+      exp))
 
 (define (normalize-let bindings body k)
   (define vars (map car bindings))
@@ -157,20 +170,23 @@
      (foldr (lambda (var b-exp exp)
               (normalize b-exp
                          (lambda (aexp)
-                           `(let ([,var ,aexp])
+                           `(let ([,var ,aexp]) ()
                               ,exp))))
             '()
             vars
             exps)))
   (match e
-    [`(let ,bindings ())
+    [`(let ,bindings () ())
      (let ([body (map normalize-term body)])
        (k `(let ,bindings
              ,(djl vars (pop-scope!))
-             ,@body)))]))
+             ,@body)))]
+    [else
+     (pretty-print e)
+     (error "no matching")]))
 
 ;; TODO: test (lambda x x)
-;; TODO: optimize excessive frames for define/set!
+;; TODO: optimise excessive frames for define/set!
 (define (normalize exp k)
   (match exp
     [`(begin . ,body)
@@ -242,7 +258,10 @@
                          (normalize-name* e* (lambda (t*)
                                                (k `(,t . ,t*))))))]
     [`()
-     (k '())]))
+     (k '())]
+
+    [else
+     (error "How about wow")]))
 
 (define (normalize-name exp k)
   (normalize exp
@@ -250,7 +269,7 @@
                (if (atomic? aexp)
                    (k aexp)
                    (let ([t (gensym)])
-                     `(let ([,t ,aexp])
+                     `(let ([,t ,aexp]) ()
                         ,(k t)))))))
 
 (define (normalize-name* exp* k)
@@ -263,7 +282,7 @@
                                            (k `(,t . ,t*))))))))
 
 (define (normalize-term exp)
-  (normalize exp (lambda (k) k)))
+  (contract-let (normalize exp identity)))
 
 (define (normalize-program exps)
   (clear-scope!)
