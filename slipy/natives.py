@@ -1,14 +1,13 @@
 import time
 from rpython.rlib import jit
 from slipy.exceptions import EvaluationFinished
-from slipy.parse import parse_data, parse_ast
 from slipy.read import read_string, expand_string
 from slipy.values import *
 from slipy.util import raw_input, write, zip
 
-
 native_dict = {}
 simple_natives = []
+_current_offset = 0
 
 # TODO: replace asserts with exceptions!!!
 # TODO: set-car!, set-cdr! + test with append if lists are copied properly
@@ -30,7 +29,9 @@ def declare_native(name, simple=True):
 
         sym = W_Symbol.from_string(name)
         native = W_NativeFunction(inner)
-        native_dict[sym] = native
+        global _current_offset
+        native_dict[sym] = (_current_offset, native)
+        _current_offset += 1
         if simple:
             simple_natives.append(sym)
         inner.func_name = "%s_wrapped" % func.func_name
@@ -308,6 +309,7 @@ def is_null(args):
 
 @declare_native("read")
 def read(args):
+    from slipy.parse import parse_data
     # TODO: multiline input
     # TODO: no more raw input
     # TODO: read string
@@ -319,6 +321,7 @@ def read(args):
 
 @declare_native("eval", simple=False) #, arguments=[W_Pair])
 def eval(args, env, cont):
+    from slipy.parse import parse_ast
     from slipy.interpreter import interpret_with_env, return_value_direct
     form = args[0]
     # TODO: fix %s stuff

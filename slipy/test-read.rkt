@@ -9,7 +9,7 @@
                           ;;(pretty-print (jsexpr->string hash))
                           (void))
                         (lambda (input)
-                          (slip-expand input #:json #f))
+                          (slip-expand input #:json #t))
                         read
                         open-input-string))
 
@@ -36,7 +36,82 @@
 ;; "Tests" for slip-expand
 ;;
 
-(helper "((if (+ 1 2) #t #f))")
+#;(contract-let '(let ((a 1))
+                 (void)))
+#;(contract-let '(let ((a 1))
+                 (let ((b 2))
+                   (void))))
+#;(contract-let '(let ((a 1))
+                 (let ((b 2))
+                   (let ((c 3))
+                     (void)
+                     (void)))))
+
+(define id identity)
+(define test (compose pretty-print normalize-program))
+(define test2 (compose pretty-print lexical-address normalize-program))
+(define test3 (compose pretty-print
+                       prog->json
+                       ;;pretty-print
+                       lexical-address
+                       normalize-program))
+
+#;(test3 '((begin
+
+  ;;; SUMFP -- Compute sum of integers from 0 to 10000 using floating point
+
+           ;;(begin (define (displayln x) (display x)(newline)) (define iters 500000.0) (define samples 30) (define (loop i sum) (if (= i 0.0) sum (loop (- i 1.0) (+ i sum)))) (define (test) (displayln "Doing a test run") (define start (time)) (loop iters 0.0) (- (time) start)) (define (do-tests n res) (if (= n 0) res (do-tests (- n 1) (cons (test) res)))) (define (mean lst) (/ (apply + lst) samples)) (/ (mean (do-tests samples '())) 1000000))
+
+           (define iters 500000.0)
+           (define samples 30)
+           (define (loop i sum) (if (= i 0.0) sum (loop (- i 1.0) (+ i sum))))
+           (define (test) (display "Doing a test run")(newline) (define start (time)) (loop iters 0.0) (- (time) start))
+           (define (do-tests n res) (if (= n 0) res (do-tests (- n 1) (cons (test) res))))
+           (define (mean lst) (/ (apply + lst) samples))
+           (mean (do-tests samples '())))))
+#;(test3
+ '((define (mean list)
+    (/ (apply + list)
+       (length list)))
+  (let ([l '(3 4 5)]
+        [l (cons 2 l)]
+        [l (cons 1 l)]
+        [mean2 (lambda (list)
+                 (displayln "Calculating mean")
+                 (mean (cdr (cdr list))))])
+    (mean2 l)))
+ )
+#;(newline)
+#;(contract-let
+ '(let ((a 1)) ()
+       (let ((b 2)
+             (c 3)) ()
+             (* a b c))))
+;;(newline)
+#;(test2
+ '((define x 1)
+   (let ((a 1))
+     (let ((b 2)
+           (c 3))
+       (* a b c)))
+   (+ x x)))
+;;(newline)
+#;(test
+ '((let ((a 1))
+     (define b 2)
+     (+ a b))))
+
+;;(test '((let ((a (let ((b 2)) b))) a)))
+
+;;(normalize '(if x (define y 1) (define z 2)) id)
+;;(normalize '(lambda (x y) (define x 1) y) id)
+
+
+#;(normalize-let '((a (+ 1 2)) (x (* a (+ a (define x 1))))) '((define y 2)(void)(+ a b)) identity)
+
+
+;;(helper "((begin (displayln x) (define x 1)))")
+;;(helper "((if (+ 1 2) #t #f))")
 ;;(helper "((+ 1 2 3 (+ 2 3) 4 5))")
 ;;(helper "((let ((n (let ((y 2)(x 3)) (+ x y)))) (* n n)))")
 ;;(helper "((let ((x 1) (y (* x x))) y))")

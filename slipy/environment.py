@@ -1,5 +1,6 @@
 from rpython.rlib import jit
 from slipy.exceptions import SlipException
+from slipy.values import w_undefined
 
 
 class Cell(object):
@@ -17,32 +18,44 @@ class Env(object):
     # TODO: initialise bindings so it can be immutable too
     _immutable_fields_ = ["_previous"]
 
-    def __init__(self, previous=None):
-        self._previous = previous
-        self._bindings = {}
+    def __init__(self, size, previous=None):
+        self.previous = previous
+        self.bindings = [None] * size
+        for i in range(0, size):
+            self.bindings[i] = Cell(w_undefined)
+        if previous:
+            self.structure = previous.structure + [self]
+        else:
+            self.structure = [self]
+        self.scope = len(self.structure) - 1
 
     @jit.elidable
-    def get_var(self, id):
-        if id in self._bindings:
-            return self._bindings[id]
-        elif self._previous:
-            return self._previous.get_var(id)
-        else:
-            # TODO: Better error msg
-            raise SlipException("var `%s' not found" % id.to_string())
+    def get_var(self, scope, offset):
+        env = self.structure[scope]
+        cell = env.bindings[offset]
+        return cell
 
-    def add_var(self, sym, val):
-        # if sym in self._bindings:
-        #     raise Exception("Can not overwrite binding")
-        # c = Cell(val)
-        # self._bindings[sym] = c
-        if sym in self._bindings:
-            c = self._bindings[sym]
-            c.set_value(val)
-        else:
-            c = Cell(val)
-            self._bindings[sym] = c
+    def set_var(self, scope, offset, val):
+        cell = self.structure[scope].bindings[offset]
+        cell.set_value(val)
+        return val
 
     def __str__(self):
-        keys = " ".join(map(str, self._bindings.keys()))
-        return "#<Env {%s} prev=%s>" % (keys, self._previous)
+        # TODO: re-implement me
+        # keys = " ".join(map(str, self.bindings.keys()))
+        # return "#<Env {%s} prev=%s>" % (keys, self._previous)
+        return "#<env>"
+
+
+class _GlobalEnv(object):
+    def __init__(self):
+        self.global_env = None
+_global_env = _GlobalEnv()
+
+
+def get_global_env():
+    return _global_env.global_env
+
+
+def set_global_env(env):
+    _global_env.global_env = env

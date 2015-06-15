@@ -1,5 +1,4 @@
 from rpython.rlib import jit
-from slipy.environment import Env
 from slipy.exceptions import *
 from slipy.continuation import *
 from slipy.util import zip
@@ -55,7 +54,8 @@ class W_Pair(W_SlipObject):
 
 
 class W_Vector(W_SlipObject):
-    _imutable_fields_ = ["length"]
+    # TODO: fixme
+    # _immutable_fields_ = ["length"]
 
     def __init__(self, values, length):
         self._values = values
@@ -118,7 +118,7 @@ class W_Number(W_SlipObject):
 
 
 class W_Integer(W_Number):
-    _imutable_fields_ = ["_val"]
+    _immutable_fields_ = ["_val"]
 
     is_int = True
 
@@ -175,7 +175,7 @@ class W_Integer(W_Number):
 
 
 class W_Float(W_Number):
-    _imutable_fields_ = ["_val"]
+    _immutable_fields_ = ["_val"]
 
     is_float = True
 
@@ -288,20 +288,28 @@ class W_NativeFunction(W_Callable):
 
 
 class W_Closure(W_Callable):
-    def __init__(self, args, env, body):
-        self._args = args
-        self._env = env
-        self._body = body
+    def __init__(self, args, vars, env, body):
+        from slipy.AST import Sequence
+        self.args = args
+        self.env = env
+        self.body = Sequence(body)
+        self.vars = vars
 
     @jit.unroll_safe
     def call(self, args, env, cont):
+        from slipy.environment import Env
         # TODO: stuff like len calls could be optimized maybe?
-        if len(args) != len(self._args):
+        if len(args) != len(self.args):
             raise SlipException("Incorrect length of argument list")
-        new_env = Env(previous=self._env)
-        for sym, val in zip(self._args, args):
-            new_env.add_var(sym, val)
-        return self._body, new_env, cont
+        new_env = Env(len(args)+len(self.vars), previous=self.env)
+
+        # for sym, val in zip(self._args, args):
+        #     new_env.add_var(sym, val)
+
+        for i, val in enumerate(args):
+            new_env.set_var(new_env.scope, i, val)
+
+        return self.body, new_env, cont
 
     def __str__(self):
         return "#<closure>"

@@ -119,7 +119,7 @@
 ;; The code had to be changed to support define and set! as expressions.
 
 (define primitives
-  '(not + - * / = < > exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set! void apply eval))
+  '(not + - * / = < > exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set! void apply eval call/cc))
 
 (define (atomic? exp)
   (match exp
@@ -147,7 +147,7 @@
       [`(let (,binding) ,vars . ,body)
        (let ((bindings (cons binding bindings)))
          `(let (,@(reverse bindings))
-            ,(djl (map car bindings) (flatten all-vars))
+            ,(djl (map car bindings) (flatten (cons vars all-vars)))
             ,@body))]
       [`(let (,binding . ,rest) ,vars . ,body)
        (inner `(let (,@rest) ,vars ,@body)
@@ -334,14 +334,14 @@
           ,vars
           ,@(map (lambda (e) (lexical-address* e new-frame)) body)))]
     [`(if ,test ,con ,alt)
-     `(if (get-address frame test)
-          (lexical-address* con frame)
-          (lexical-address* alt frame))]
+     `(if ,(get-address frame test)
+          ,(lexical-address* con frame)
+          ,(lexical-address* alt frame))]
     [`(set! ,var ,aexp)
      `(set! ,(lexical-address* var frame)
         ,(lexical-address* aexp frame))]
     [`(begin . ,exps)
-     (map (lambda (e) (lexical-address* e frame)) exps)]
+     `(begin ,@(map (lambda (e) (lexical-address* e frame)) exps))]
     [`(,rator . ,rands)
      `(,(let ([ref (get-address frame rator)])
           (if (eq? 'quote 'ref)
@@ -380,7 +380,7 @@
   (match exp
     [`(if . ,_) #t]
     [`(set! . ,_) #t]
-    [`(begin . ,_) #t]
+    ;; [`(begin . ,_) #t]
     [(list aexps ...) (andmap aexp? aexps)]
     [else #f]))
 
@@ -419,7 +419,7 @@
                'scope (lex-ref-scope ref)
                'offset (lex-ref-offset ref)
                'symbol (symbol->string (lex-ref-symbol ref))))
-        (else (error "not a ref"))))
+        (else (error (~a "not a ref: " ref)))))
 
 (define (aexp->json aexp)
   (match aexp
@@ -470,9 +470,6 @@
      (hash 'type "set"
            'target (ref->json var)
            'val (aexp->json aexp))]
-    [`(begin . ,exprs)
-     (hash 'type "begin"
-           'body (map exp->json exprs))]
     [`(,op . ,aexps)
      (hash 'type "apl"
            'operator (aexp->json op)
@@ -487,6 +484,9 @@
            'vals (map (compose exp->json cadr) bindings)
            'decls (map symbol->string vars)
            'body (map exp->json body))]
+    [`(begin . ,exprs)
+     (hash 'type "begin"
+           'body (map exp->json exprs))]
     [(? aexp?)
      (aexp->json exp)]
     [(? cexp?)
