@@ -23,27 +23,9 @@ class EmptyContinuation(Continuation):
 empty_continuation = EmptyContinuation()
 
 
-# class LetContinuation(Continuation):
-#     def __init__(self, prev, var, body, env):
-#         self._prev = prev
-#         self._var = var
-#         self._body = body
-#         self._env = env
-#
-#     def cont(self, val, env):
-#         new_env = Env(previous=self._env)
-#         new_env.add_var(self._var, val)
-#         if len(self._body) == 1:
-#             cont = self._prev
-#         else:
-#             cont = SequenceContinuation(self._body[1:], new_env, self._prev)
-#         return self._body[0], new_env, cont
-#
-#     def depth(self):
-#         return 1 + self._prev.depth()
-
-
 class LetContinuation(Continuation):
+    _immutable_fields_ = ["let", "prev", "cont"]
+
     def __init__(self, let, i, cont, env):
         self.let = let
         self.i = i
@@ -71,6 +53,8 @@ class LetContinuation(Continuation):
 
 # Note how we always restore the environment
 class SequenceContinuation(Continuation):
+    _immutable_fields_ = ["exprs[*]", "env", "prev", "i", "len"]
+
     def __init__(self, exprs, i, env, prev):
         self.exprs = exprs
         self.prev = prev

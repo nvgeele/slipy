@@ -3,7 +3,7 @@ from rpython.rlib import jit
 from slipy.exceptions import EvaluationFinished
 from slipy.read import read_string, expand_string
 from slipy.values import *
-from slipy.util import raw_input, write, zip
+from slipy.util import raw_input, write
 
 native_dict = {}
 simple_natives = []
@@ -237,6 +237,8 @@ def list(args):
 
 
 # TODO: move to appropriate place
+# XXX: this unroll_safe annotation causes the compiler to segfault... yes.
+# @jit.unroll_safe
 def values_from_list(pair):
     result = []
     curr = pair

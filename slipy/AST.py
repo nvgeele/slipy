@@ -28,6 +28,8 @@ class AST(object):
 
 
 class Application(AST):
+    _immutable_fields_ = ["operator", "operands[*]"]
+
     def __init__(self, operator, operands):
         assert operator.simple
         for o in operands:
@@ -57,6 +59,8 @@ class Application(AST):
 
 
 class If(AST):
+    _immutable_fields_ = ["test", "consequent", "alternative"]
+
     def __init__(self, test, consequent, alternative):
         self.test = test
         self.consequent = consequent
@@ -77,6 +81,7 @@ class If(AST):
 
 
 class Lambda(AST):
+    _immutable_fields_ = ["args[*]", "body[*]", "vars[*]"]
     simple = True
 
     def __init__(self, args, vars, body):
@@ -98,6 +103,8 @@ class Lambda(AST):
 
 
 class Let(AST):
+    _immutable_fields_ = ["vars[*]", "vals[*]", "decls[*]", "body[*]"]
+
     def __init__(self, vars, vals, decls, body):
         self.vars = vars
         self.vals = vals
@@ -144,6 +151,8 @@ class SetBang(AST):
 
 
 class Sequence(AST):
+    _immutable_fields_ = ["_exprs[*]"]
+
     def __init__(self, exprs):
         self._exprs = exprs
 
@@ -163,6 +172,7 @@ class Sequence(AST):
 
 
 class VarRef(AST):
+    _immutable_fields_ = ["sym", "scope", "offset"]
     simple = True
 
     def __init__(self, sym, scope, offset):
@@ -182,6 +192,8 @@ class VarRef(AST):
 
 
 class Program(AST):
+    _immutable_fields_ = ["vars[*]", "body[*]"]
+
     def __init__(self, vars, body):
         self.vars = vars
         self.body = body
@@ -200,6 +212,7 @@ class Program(AST):
 
 
 class Quote(AST):
+    _immutable_fields_ = ["_val"]
     simple = True
 
     def __init__(self, val):

@@ -1,7 +1,6 @@
 from rpython.rlib import jit
 from slipy.exceptions import *
 from slipy.continuation import *
-from slipy.util import zip
 
 # TODO: __str__ for all classes
 # TODO: getters and setters?
@@ -63,6 +62,7 @@ class W_Vector(W_SlipObject):
 
     # TODO: Unroll safe?
     @staticmethod
+    @jit.unroll_safe
     def make(length, val):
         vals = [val] * length
         return W_Vector(vals, length)
@@ -235,6 +235,8 @@ class W_Float(W_Number):
 
 
 class W_Boolean(W_SlipObject):
+    _immutable_fields_ = ["_value"]
+
     def __init__(self, value):
         self._value = value
 
@@ -247,6 +249,8 @@ class W_Boolean(W_SlipObject):
 
 
 class W_Symbol(W_SlipObject):
+    _immutable_fields_ = ["_str"]
+
     def __init__(self, str):
         self._str = str
 
@@ -280,6 +284,8 @@ class W_Callable(W_SlipObject):
 
 
 class W_NativeFunction(W_Callable):
+    _immutable_fields_ = ["func"]
+
     def __init__(self, func):
         self._func = func
 
@@ -291,6 +297,8 @@ class W_NativeFunction(W_Callable):
 
 
 class W_Closure(W_Callable):
+    _immutable_fields_ = ["args[*]", "vars[*]", "env", "body[*]"]
+
     def __init__(self, args, vars, env, body):
         from slipy.AST import Sequence
         self.args = args
@@ -319,6 +327,8 @@ class W_Closure(W_Callable):
 
 
 class W_Continuation(W_Callable):
+    _immutable_fields_ = ["_cont"]
+
     def __init__(self, cont):
         self._cont = cont
 
@@ -357,6 +367,7 @@ def is_true(val):
     return not(isinstance(val, W_Boolean) and val is w_false)
 
 
+@jit.unroll_safe
 def from_list(obj):
     list = []
     current = obj

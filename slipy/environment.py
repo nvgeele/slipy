@@ -15,8 +15,7 @@ class Cell(object):
 
 
 class Env(object):
-    # TODO: initialise bindings so it can be immutable too
-    _immutable_fields_ = ["_previous"]
+    _immutable_fields_ = ["previous", "bindings[*]", "structure[*]", "scope"]
 
     def __init__(self, size, previous=None):
         self.previous = previous
