@@ -55,7 +55,7 @@ def plus(args):
         return args[0]
     else:
         acc = args[0]
-        for i in range(1, len(args)):
+        for i in range(1, jit.promote(len(args))):
             assert isinstance(args[i], W_Number)
             acc = acc.add(args[i])
         return acc
@@ -71,7 +71,7 @@ def minus(args):
         return W_Integer(0).sub(args[0])
     else:
         acc = args[0]
-        for i in range(1, len(args)):
+        for i in range(1, jit.promote(len(args))):
             assert isinstance(args[i], W_Number)
             acc = acc.sub(args[i])
         return acc
@@ -87,7 +87,7 @@ def multiply(args):
         return args[0]
     else:
         acc = args[0]
-        for i in range(1, len(args)):
+        for i in range(1, jit.promote(len(args))):
             assert isinstance(args[i], W_Number)
             acc = acc.mul(args[i])
         return acc
@@ -103,7 +103,7 @@ def divide(args):
         return args[0]
     else:
         acc = args[0]
-        for i in range(1, len(args)):
+        for i in range(1, jit.promote(len(args))):
             assert isinstance(args[i], W_Number)
             acc = acc.div(args[i])
         return acc
@@ -115,7 +115,7 @@ def num_equal(args):
     assert len(args) >= 2
     i = 2
     v = True
-    while i <= len(args):
+    while i <= jit.promote(len(args)):
         l, r = args[i-2], args[i-1]
         assert isinstance(l, W_Number)
         assert isinstance(r, W_Number)
@@ -132,7 +132,7 @@ def num_lt(args):
     assert len(args) >= 2
     i = 2
     v = True
-    while i <= len(args):
+    while i <= jit.promote(len(args)):
         l, r = args[i-2], args[i-1]
         assert isinstance(l, W_Number)
         assert isinstance(r, W_Number)
@@ -149,7 +149,7 @@ def num_lt(args):
     assert len(args) >= 2
     i = 2
     v = True
-    while i <= len(args):
+    while i <= jit.promote(len(args)):
         l, r = args[i-2], args[i-1]
         assert isinstance(l, W_Number)
         assert isinstance(r, W_Number)

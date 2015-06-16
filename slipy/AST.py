@@ -28,7 +28,7 @@ class AST(object):
 
 
 class Application(AST):
-    _immutable_fields_ = ["operator", "operands[*]"]
+    _immutable_fields_ = ["_operator", "_operands[*]"]
 
     def __init__(self, operator, operands):
         assert operator.simple
@@ -102,6 +102,7 @@ class Lambda(AST):
         return "(lambda ...)"
 
 
+# TODO: make_let_cont for jit promotion of length etc
 class Let(AST):
     _immutable_fields_ = ["vars[*]", "vals[*]", "decls[*]", "body[*]"]
 
@@ -150,6 +151,7 @@ class SetBang(AST):
         return "(set! %s %s)" % (self.sym.to_string(), self.val.to_string())
 
 
+# TODO: make_sequence_cont for jit promotion of length etc
 class Sequence(AST):
     _immutable_fields_ = ["_exprs[*]"]
 
