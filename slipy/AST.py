@@ -61,19 +61,6 @@ class If(AST):
         self.test = test
         self.consequent = consequent
         self.alternative = alternative
-        # TODO: move this "optimization" to parse?
-        # if isinstance(consequent, VarLet) and \
-        #         len(consequent.vars) == 0 and \
-        #         len(consequent.body) == 1:
-        #     self._consequent = consequent.body[0]
-        # else:
-        #     self._consequent = consequent
-        # if isinstance(alternative, VarLet) and \
-        #         len(alternative.vars) == 0 and \
-        #         len(alternative.body) == 1:
-        #     self._alternative = alternative.body[0]
-        # else:
-        #     self._alternative = alternative
 
     def eval(self, env, cont):
         # Test is an aexp, i.e. simple
@@ -149,8 +136,6 @@ class SetBang(AST):
 
     def eval_simple(self, env):
         val = self.val.eval_simple(env)
-        # cell = env.get_var(self.scope, self.offset)
-        # cell.set_value(val)
         env.set_var(self.scope, self.offset, val)
         return val
 
@@ -166,7 +151,7 @@ class Sequence(AST):
         if len(self._exprs) == 1:
             return self._exprs[0], env, cont
         else:
-            cont = SequenceContinuation(self._exprs[1:], env, cont)
+            cont = SequenceContinuation(self._exprs, 1, env, cont)
             return self._exprs[0], env, cont
 
     def __str__(self):
@@ -175,35 +160,6 @@ class Sequence(AST):
             exprs[i] = exp.to_string()
         exprs = " ".join(exprs)
         return "(begin %s)" % exprs
-
-
-# class VarLet(AST):
-#     def __init__(self, vars, exprs):
-#         self.vars = vars
-#         self.body = exprs
-#
-#     @jit.unroll_safe
-#     def eval(self, env, cont):
-#         new_env = Env(previous=env)
-#         for var in self.vars:
-#             assert isinstance(var, W_Symbol)
-#             new_env.add_var(var, w_undefined)
-#         if len(self.body) == 1:
-#             return self.body[0], new_env, cont
-#         else:
-#             cont = SequenceContinuation(self.body[1:], new_env, cont)
-#             return self.body[0], new_env, cont
-#
-#     def __str__(self):
-#         decls = [None] * len(self.vars)
-#         for i, var in enumerate(self.vars):
-#             decls[i] = var.to_string()
-#         exprs = [None] * len(self.body)
-#         for i, exp in enumerate(self.body):
-#             exprs[i] = exp.to_string()
-#         decls = " ".join(decls)
-#         exprs = " ".join(exprs)
-#         return "(let-var (%s) %s)" % (decls, exprs)
 
 
 class VarRef(AST):
@@ -225,37 +181,17 @@ class VarRef(AST):
         return self.sym.to_string()
 
 
-# class LexVar(AST):
-#     simple = True
-#
-#     def __init__(self, scope, sym):
-#         self.scope = scope
-#         self.sym = sym
-#
-#     def eval_simple(self, env):
-#         cell = env.lex_var(self.scope, self.sym)
-#         return cell.get_value()
-#
-#
-# class LexSetBang(AST):
-#     simple = True
-#
-#     def __init__(self, scope, sym, val):
-#         pass
-
-
 class Program(AST):
     def __init__(self, vars, body):
         self.vars = vars
         self.body = body
 
-    @jit.unroll_safe
     def eval(self, env, cont):
         env = Env(len(self.vars), previous=get_global_env())
         if len(self.body) == 1:
             return self.body[0], env, cont
         else:
-            cont = SequenceContinuation(self.body[1:], env, cont)
+            cont = SequenceContinuation(self.body, 1, env, cont)
             return self.body[0], env, cont
 
     def __str__(self):

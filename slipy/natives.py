@@ -348,7 +348,7 @@ def make_vector(args):
 def vector_length(args):
     assert len(args) == 1
     assert isinstance(args[0], W_Vector)
-    return W_Integer(args[0].length)
+    return W_Integer(args[0].length())
 
 
 @declare_native("vector-ref")

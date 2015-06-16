@@ -55,11 +55,11 @@ class W_Pair(W_SlipObject):
 
 class W_Vector(W_SlipObject):
     # TODO: fixme
-    # _immutable_fields_ = ["length"]
+    _immutable_fields_ = ["len"]
 
     def __init__(self, values, length):
         self._values = values
-        self.length = length
+        self.len = length
 
     # TODO: Unroll safe?
     @staticmethod
@@ -68,18 +68,21 @@ class W_Vector(W_SlipObject):
         return W_Vector(vals, length)
 
     def ref(self, idx):
-        if idx >= self.length:
+        if idx >= self.len:
             raise SlipException("index out of bounds")
         return self._values[idx]
 
     def set(self, idx, val):
-        if idx >= self.length:
+        if idx >= self.len:
             raise SlipException("index out of bounds")
         self._values[idx] = val
 
+    def length(self):
+        return self.len
+
     # TODO: Fix for to_display
     def __str__(self):
-        vals = [None] * self.length
+        vals = [None] * self.len
         for i, val in enumerate(self._values):
             vals[i] = val.to_string()
         vals = " ".join(vals)
