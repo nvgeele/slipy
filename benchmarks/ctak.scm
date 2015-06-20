@@ -18,7 +18,7 @@
           (call-with-current-continuation
            (lambda (k) (ctak-aux k (- z 1) x y))))))))
 
-(define samples 30)
+(define samples 20)
 
 (define (mean d l)
   (/ (apply + d) l))
@@ -35,9 +35,10 @@
             (s (stddev times samples)))
         (display "Mean: ") (display m) (newline)
         (display "Stddev: ") (display s) (newline))
-      (begin (display n)(newline)
-             (let ((s (time)))
-               (ctak 18 12 6)
-               (do-tests (- n 1) (cons (- (time) s) times))))))
+      (let ((s (time)))
+        (ctak 18 12 32)
+        (let ((t (- (time) s)))
+          (display t)(newline)
+          (do-tests (- n 1) (cons t times))))))
 
 (do-tests samples '())

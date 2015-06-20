@@ -7,7 +7,7 @@
         (g39 (- n 1) (cons '() a))))
   (g39 n '()))
 
-(define *ll* (create-n 200))
+(define *ll* (create-n 131072))
 
 (define (recursive-div2 l)
   (if (null? l)

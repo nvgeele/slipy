@@ -76,7 +76,7 @@
     (loop3 2)))
 
 (define data
-  (make-vector (* 4096 8) 0.0))
+  (make-vector (* 4096 4) 0.0))
 
 (define (run data)
   (four1 data)

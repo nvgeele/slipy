@@ -98,7 +98,8 @@
         (display "Stddev: ") (display s) (newline))
       (begin (display n)(newline)
              (let ((s (time)))
-               (dderiv '(+ (* 3 x x) (* a x x) (* b x) 5))
+               (dderiv '(* (+ (* 3 x x) (* a x x) (* b x) 5)
+                           (+ (* 3 x x) (* a x x) (* b x) 5)))
                (do-tests (- n 1) (cons (- (time) s) times))))))
 
 (do-tests samples '())

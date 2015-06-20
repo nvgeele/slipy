@@ -105,7 +105,6 @@ class Lambda(AST):
                                           " ".join(body))
 
 
-# TODO: make_let_cont for jit promotion of length etc?
 class Let(AST):
     _immutable_fields_ = ["vars[*]", "vals[*]", "decls[*]", "body"]
 
@@ -117,12 +116,15 @@ class Let(AST):
 
     def eval(self, env, cont):
         new_env = Env(len(self.vars) + len(self.decls), previous=env)
-        if len(self.vars) == 0:
-            # return Sequence(self.body), new_env, cont
-            return self.body, new_env, cont
+        return self.make_cont(new_env, cont)
+
+    def make_cont(self, env, prev, i=0):
+        # jit.promote(self)
+        # jit.promote(i)
+        if i == len(self.vars):
+            return self.body, env, prev
         else:
-            l_cont = LetContinuation(self, 0, cont, new_env)
-            return self.vals[0], new_env, l_cont
+            return self.vals[i], env, LetContinuation(self, i, env, prev)
 
     def __str__(self):
         vars = [None] * len(self.vars)
