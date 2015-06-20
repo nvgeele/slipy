@@ -58,3 +58,35 @@ class SequenceContinuation(Continuation):
 
     def depth(self):
         return 1 + self.prev.depth()
+
+
+class MapStartContinuation(Continuation):
+    _immutable_fields_ = ["fn", "list", "prev"]
+
+    def __init__(self, fn, list, prev):
+        self.fn = fn
+        self.list = list
+        self.prev = prev
+
+    def cont(self, val, env):
+        from slipy.natives import do_map
+        cont = MapBuildContinuation(val, self.prev)
+        return do_map(self.fn, self.list, env, cont)
+
+    def depth(self):
+        return 1 + self.prev.depth()
+
+
+class MapBuildContinuation(Continuation):
+    _immutable_fields_ = ["val", "prev"]
+
+    def __init__(self, val, prev):
+        self.val = val
+        self.prev = prev
+
+    def cont(self, val, env):
+        from slipy.interpreter import return_value_direct
+        return return_value_direct(W_Pair(self.val, val), env, self.prev)
+
+    def depth(self):
+        return 1 + self.prev.depth()

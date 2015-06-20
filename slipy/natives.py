@@ -2,13 +2,15 @@ import time
 from math import sin
 from rpython.rlib import jit
 from slipy.exceptions import *
+from slipy.continuation import MapStartContinuation
 from slipy.read import read_string, expand_string
 from slipy.values import *
 from slipy.util import raw_input, write
 
 native_dict = {}
-simple_natives = []
 _current_offset = 0
+
+# TODO: dedicated functions for error throwing
 
 # TODO: test with append if lists are copied properly
 # TODO: automatic type checkers in declare_native
@@ -26,16 +28,34 @@ def declare_native(name, simple=True):
                 assert ret
                 return ret
 
-        sym = W_Symbol.from_string(name)
-        native = W_NativeFunction(inner)
         global _current_offset
-        native_dict[sym] = (_current_offset, native)
-        _current_offset += 1
-        if simple:
-            simple_natives.append(sym)
+        native = W_NativeFunction(inner)
+        names = [name] if isinstance(name, str) else name
+        for n in names:
+            sym = W_Symbol.from_string(n)
+            native_dict[sym] = (_current_offset, native)
+            _current_offset += 1
         inner.func_name = "%s_wrapped" % func.func_name
         return inner
     return wrapper
+
+
+@declare_native("eq?")
+def is_eq(args):
+    if not len(args) == 2:
+        raise SlipException(arg_count_error % "eq?")
+    # TODO: if we memoise W_Numbers, we would not need to do this
+    if isinstance(args[0], W_Number) and isinstance(args[1], W_Number):
+        return W_Boolean.from_value(args[0].is_eq(args[1]))
+    else:
+        return W_Boolean.from_value(args[0] is args[1])
+
+
+@declare_native("pair?")
+def is_pair(args):
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "pair?")
+    return W_Boolean.from_value(isinstance(args[0], W_Pair))
 
 
 @declare_native("not")
@@ -248,6 +268,34 @@ def exact_inexact(args):
     return W_Float(args[0].value())
 
 
+@declare_native(["error", "fatal-error"])
+def throw_error(args):
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "error")
+    raise SlipException("Program threw error with value: " % args[0].to_string())
+
+
+@declare_native("map", simple=False)
+def list_map(args, env, cont):
+    if not len(args) == 2:
+        raise SlipException(arg_count_error % "map")
+    fn = args[0]
+    if not isinstance(fn, W_Callable):
+        raise SlipException(arg_types_error % "map")
+    list = args[1]
+    if not isinstance(list, W_Pair):
+        raise SlipException(arg_types_error % "map")
+    return do_map(fn, list, env, cont)
+
+def do_map(fn, list, env, cont):
+    from slipy.interpreter import return_value_direct
+    if not isinstance(list, W_Pair):
+        if list is not w_empty:
+            raise SlipException("map: malformed list")
+        return return_value_direct(w_empty, env, cont)
+    return fn.call([list.car()], env, MapStartContinuation(fn, list.cdr(), cont))
+
+
 @declare_native("apply", simple=False)
 def apply(args, env, cont):
     if not len(args) == 2:
@@ -265,7 +313,7 @@ def apply(args, env, cont):
     return fn.call(actual_args, env, cont)
 
 
-@declare_native("call/cc", simple=False)
+@declare_native(["call/cc", "call-with-current-continuation"], simple=False)
 def callcc(args, env, cont):
     if not len(args) == 1:
         raise SlipException(arg_count_error % "call/cc")
