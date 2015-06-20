@@ -105,7 +105,7 @@ class Lambda(AST):
                                           " ".join(body))
 
 
-# TODO: make_let_cont for jit promotion of length etc
+# TODO: make_let_cont for jit promotion of length etc?
 class Let(AST):
     _immutable_fields_ = ["vars[*]", "vals[*]", "decls[*]", "body"]
 

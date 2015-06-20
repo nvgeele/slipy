@@ -119,7 +119,7 @@
 ;; The code had to be changed to support define and set! as expressions.
 
 (define primitives
-  '(not + - * / = < > <= >= exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set! void apply eval call/cc sin quotient set-car! set-cdr! call-with-current-continuation error fatal-error map eq? pair?))
+  '(not + - * / = < > <= >= exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set! void apply eval call/cc sin quotient set-car! set-cdr! call-with-current-continuation error fatal-error map eq? pair? sqrt))
 
 (define (atomic? exp)
   (match exp

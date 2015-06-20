@@ -17,6 +17,7 @@ class Cell(object):
 class Env(object):
     _immutable_fields_ = ["previous", "bindings[*]", "structure[*]", "scope"]
 
+    @jit.unroll_safe
     def __init__(self, size, previous=None):
         self.previous = previous
         self.bindings = [None] * size
@@ -28,7 +29,7 @@ class Env(object):
             self.structure = [self]
         self.scope = len(self.structure) - 1
 
-    @jit.elidable
+    # @jit.elidable
     def get_var(self, scope, offset):
         env = self.structure[scope]
         cell = env.bindings[offset]

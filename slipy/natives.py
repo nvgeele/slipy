@@ -1,5 +1,5 @@
 import time
-from math import sin
+from math import sin, sqrt
 from rpython.rlib import jit
 from slipy.exceptions import *
 from slipy.continuation import MapStartContinuation
@@ -137,13 +137,20 @@ def divide(args):
         return acc
 
 
+@declare_native("sqrt")
+def num_sqrt(args):
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "sin")
+    if not isinstance(args[0], W_Number):
+        raise SlipException(arg_types_error % "sin")
+    return W_Float(sqrt(args[0].value()))
+
 @declare_native("sin")
 def num_sin(args):
     if not len(args) == 1:
         raise SlipException(arg_count_error % "sin")
     if not isinstance(args[0], W_Number):
         raise SlipException(arg_types_error % "sin")
-
     return W_Float(sin(args[0].value()))
 
 

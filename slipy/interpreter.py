@@ -27,14 +27,12 @@ def return_value_direct(value, env, cont):
 
 
 def _interpret(ast, env, cont):
-    # from slipy.util import write
     prev = ast
     while True:
         driver.jit_merge_point(ast=ast, prev=prev,
                                env=env, cont=cont)
-        # write(str(cont.depth())+", ")
-        # print "pre: %s" % ast
-        prev = ast
+        if isinstance(ast, Application):
+            prev = ast
         t = type(ast)
         if t is Let:
             ast, env, cont = ast.eval(env, cont)
@@ -44,7 +42,6 @@ def _interpret(ast, env, cont):
             ast, env, cont = ast.eval(env, cont)
         else:
             ast, env, cont = ast.eval(env, cont)
-        # print "post: %s" % ast
         if isinstance(ast, Application):
             driver.can_enter_jit(ast=ast, prev=prev,
                                  env=env, cont=cont)

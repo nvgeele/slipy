@@ -2,8 +2,6 @@ from rpython.rlib import jit
 from slipy.exceptions import *
 from slipy.continuation import *
 
-# TODO: memoized constructors for numbers?
-
 _symbol_pool = {}
 
 
@@ -326,7 +324,7 @@ class W_NativeFunction(W_Callable):
 
 
 class W_Closure(W_Callable):
-    _immutable_fields_ = ["args[*]", "vars[*]", "env", "body[*]"]
+    _immutable_fields_ = ["args[*]", "vars[*]", "env", "body"]
 
     def __init__(self, args, vars, env, body):
         from slipy.AST import Sequence

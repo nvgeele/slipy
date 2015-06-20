@@ -23,7 +23,7 @@ empty_continuation = EmptyContinuation()
 
 
 class LetContinuation(Continuation):
-    _immutable_fields_ = ["let", "prev", "cont"]
+    _immutable_fields_ = ["let", "prev", "cont", "i"]
 
     def __init__(self, let, i, cont, env):
         self.let = let
@@ -33,12 +33,11 @@ class LetContinuation(Continuation):
 
     def cont(self, val, env):
         self.env.set_var(self.env.scope, self.i, val)
-        self.i += 1
-        if len(self.let.vars) == self.i:
+        if len(self.let.vars) == self.i + 1:
             return self.let.body, self.env, self.prev
         else:
-            cont = LetContinuation(self.let, self.i, self.prev, self.env)
-            return self.let.vals[self.i], self.env, cont
+            cont = LetContinuation(self.let, self.i + 1, self.prev, self.env)
+            return self.let.vals[self.i + 1], self.env, cont
 
     def depth(self):
         return 1 + self.prev.depth()
