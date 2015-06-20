@@ -402,12 +402,23 @@ def is_true(val):
 
 
 @jit.unroll_safe
-def from_list(obj):
-    list = []
-    current = obj
-    while isinstance(current, W_Pair):
-        list.append(current.car())
-        current = current.cdr()
-    if not current is w_empty:
-        raise SlipException("Malformed list")
-    return list
+def list_from_values(vals):
+    if len(vals) == 0:
+        return w_empty
+    else:
+        cur = w_empty
+        for i in range(len(vals)-1, -1, -1):
+            cur = W_Pair(vals[i], cur)
+        return cur
+
+
+def values_from_list(pair):
+    result = []
+    curr = pair
+    while isinstance(curr, W_Pair):
+        result.append(curr.car())
+        curr = curr.cdr()
+    if curr is w_empty:
+        return result
+    else:
+        raise SlipException("Improper list")

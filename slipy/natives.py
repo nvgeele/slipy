@@ -1,7 +1,7 @@
 import time
 from math import sin
 from rpython.rlib import jit
-from slipy.exceptions import EvaluationFinished
+from slipy.exceptions import *
 from slipy.read import read_string, expand_string
 from slipy.values import *
 from slipy.util import raw_input, write
@@ -9,9 +9,6 @@ from slipy.util import raw_input, write
 native_dict = {}
 simple_natives = []
 _current_offset = 0
-
-arg_count_error = "%s: the correct amount of arguments was not supplied"
-arg_types_error = "%s: one or more operators have an incorrect type"
 
 # TODO: test with append if lists are copied properly
 # TODO: automatic type checkers in declare_native
@@ -262,8 +259,7 @@ def apply(args, env, cont):
         raise SlipException(arg_types_error % "apply")
 
     try:
-        # TODO: vals_from_list
-        actual_args = from_list(args[1])
+        actual_args = values_from_list(args[1])
     except SlipException:
         raise SlipException("apply: expected list")
     return fn.call(actual_args, env, cont)
@@ -313,33 +309,6 @@ def newline(args):
 @declare_native("void")
 def void(args):
     return w_void
-
-
-# TODO: move to appropriate place
-@jit.unroll_safe
-def list_from_values(vals):
-    if len(vals) == 0:
-        return w_empty
-    else:
-        cur = w_empty
-        for i in range(len(vals)-1, -1, -1):
-            cur = W_Pair(vals[i], cur)
-        return cur
-
-
-# TODO: move to appropriate place
-# XXX: this unroll_safe annotation causes the compiler to segfault... yes.
-# @jit.unroll_safe
-def values_from_list(pair):
-    result = []
-    curr = pair
-    while isinstance(curr, W_Pair):
-        result.append(curr.car())
-        curr = curr.cdr()
-    if curr is w_empty:
-        return result
-    else:
-        raise SlipException("Improper list")
 
 
 @declare_native("list")
