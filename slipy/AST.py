@@ -5,9 +5,6 @@ from slipy.exceptions import SlipException
 from slipy.values import *
 
 
-# TODO: Immutable field declarations etc
-
-
 class AST(object):
     simple = False
 

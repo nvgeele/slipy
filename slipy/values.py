@@ -53,14 +53,12 @@ class W_Pair(W_SlipObject):
 
 
 class W_Vector(W_SlipObject):
-    # TODO: fixme
     _immutable_fields_ = ["len"]
 
     def __init__(self, values, length):
         self._values = values
         self.len = length
 
-    # TODO: Unroll safe?
     @staticmethod
     @jit.unroll_safe
     def make(length, val):
@@ -117,6 +115,12 @@ class W_Number(W_SlipObject):
         raise Exception("abstract method")
 
     def gt(self, other):
+        raise Exception("abstract method")
+
+    def le(self, other):
+        raise Exception("abstract method")
+
+    def ge(self, other):
         raise Exception("abstract method")
 
 
@@ -176,6 +180,18 @@ class W_Integer(W_Number):
         else:
             return other.lt(self)
 
+    def le(self, other):
+        if isinstance(other, W_Integer):
+            return self._val <= other.value()
+        else:
+            return other.ge(self)
+
+    def ge(self, other):
+        if isinstance(other, W_Integer):
+            return self._val >= other.value()
+        else:
+            return other.le(self)
+
 
 class W_Float(W_Number):
     _immutable_fields_ = ["_val"]
@@ -232,6 +248,18 @@ class W_Float(W_Number):
             return self._val > other.value()
         else:
             return self._val > float(other.value())
+
+    def le(self, other):
+        if isinstance(other, W_Float):
+            return self._val <= other.value()
+        else:
+            return self._val <= float(other.value())
+
+    def ge(self, other):
+        if isinstance(other, W_Float):
+            return self._val >= other.value()
+        else:
+            return self._val >= float(other.value())
 
 
 class W_Boolean(W_SlipObject):

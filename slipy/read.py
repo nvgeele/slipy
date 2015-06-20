@@ -86,7 +86,7 @@ class ReaderRPython(object):
             raise Exception("Racket reader can not be accessed")
         pipe = create_popen_file(cmd, "w")
         input = "(%s %s)" % (modus, input)
-        # TODO: might go wrong when dealing with UNICODE
+        # NOTE: might go wrong when dealing with UNICODE
         pipe.write(input)
         pipe.write("\n\0\n")
         pipe.flush()

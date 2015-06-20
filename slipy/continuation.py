@@ -1,4 +1,3 @@
-from slipy.environment import Env
 from slipy.exceptions import EvaluationFinished
 from slipy.values import *
 

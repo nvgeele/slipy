@@ -1,4 +1,5 @@
 import time
+from math import sin
 from rpython.rlib import jit
 from slipy.exceptions import EvaluationFinished
 from slipy.read import read_string, expand_string
@@ -109,6 +110,21 @@ def divide(args):
         return acc
 
 
+@declare_native("sin")
+def num_sin(args):
+    assert len(args) == 1
+    assert isinstance(args[0], W_Number)
+    return W_Float(sin(args[0].value()))
+
+
+@declare_native("quotient")
+def num_quotient(args):
+    assert len(args) == 2
+    assert isinstance(args[0], W_Integer)
+    assert isinstance(args[1], W_Integer)
+    return W_Integer(args[0].value()/args[1].value())
+
+
 @declare_native("=") #, arguments=W_Number)
 @jit.unroll_safe
 def num_equal(args):
@@ -145,7 +161,7 @@ def num_lt(args):
 
 @declare_native(">") #, arguments=W_Number)
 @jit.unroll_safe
-def num_lt(args):
+def num_gt(args):
     assert len(args) >= 2
     i = 2
     v = True
@@ -154,6 +170,40 @@ def num_lt(args):
         assert isinstance(l, W_Number)
         assert isinstance(r, W_Number)
         v = v and l.gt(r)
+        if not v:
+            return w_false
+        i += 1
+    return W_Boolean.from_value(v)
+
+
+@declare_native("<=") #, arguments=W_Number)
+@jit.unroll_safe
+def num_le(args):
+    assert len(args) >= 2
+    i = 2
+    v = True
+    while i <= jit.promote(len(args)):
+        l, r = args[i-2], args[i-1]
+        assert isinstance(l, W_Number)
+        assert isinstance(r, W_Number)
+        v = v and l.le(r)
+        if not v:
+            return w_false
+        i += 1
+    return W_Boolean.from_value(v)
+
+
+@declare_native(">=") #, arguments=W_Number)
+@jit.unroll_safe
+def num_ge(args):
+    assert len(args) >= 2
+    i = 2
+    v = True
+    while i <= jit.promote(len(args)):
+        l, r = args[i-2], args[i-1]
+        assert isinstance(l, W_Number)
+        assert isinstance(r, W_Number)
+        v = v and l.ge(r)
         if not v:
             return w_false
         i += 1

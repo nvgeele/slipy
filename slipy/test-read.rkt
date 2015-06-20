@@ -56,19 +56,17 @@
                        lexical-address
                        normalize-program))
 
-#;(test3 '((begin
+(test '((define (fac n)
+          (if (= n 0)
+              1
+              (* (fac (- n 1)) n)))))
 
-  ;;; SUMFP -- Compute sum of integers from 0 to 10000 using floating point
+(test '((define (fac-iter n acc)
+          (if (= n 0)
+              acc
+              (fac-iter (- n 1) (* n acc))))))
 
-           ;;(begin (define (displayln x) (display x)(newline)) (define iters 500000.0) (define samples 30) (define (loop i sum) (if (= i 0.0) sum (loop (- i 1.0) (+ i sum)))) (define (test) (displayln "Doing a test run") (define start (time)) (loop iters 0.0) (- (time) start)) (define (do-tests n res) (if (= n 0) res (do-tests (- n 1) (cons (test) res)))) (define (mean lst) (/ (apply + lst) samples)) (/ (mean (do-tests samples '())) 1000000))
 
-           (define iters 500000.0)
-           (define samples 30)
-           (define (loop i sum) (if (= i 0.0) sum (loop (- i 1.0) (+ i sum))))
-           (define (test) (display "Doing a test run")(newline) (define start (time)) (loop iters 0.0) (- (time) start))
-           (define (do-tests n res) (if (= n 0) res (do-tests (- n 1) (cons (test) res))))
-           (define (mean lst) (/ (apply + lst) samples))
-           (mean (do-tests samples '())))))
 #;(test3
  '((define (mean list)
     (/ (apply + list)

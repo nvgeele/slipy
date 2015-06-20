@@ -1,4 +1,4 @@
-from slipy.AST import Application
+from slipy.AST import *
 from slipy.continuation import empty_continuation
 from slipy.environment import *
 from slipy.exceptions import EvaluationFinished
@@ -35,7 +35,15 @@ def _interpret(ast, env, cont):
         # write(str(cont.depth())+", ")
         # print "pre: %s" % ast
         prev = ast
-        ast, env, cont = ast.eval(env, cont)
+        t = type(ast)
+        if t is Let:
+            ast, env, cont = ast.eval(env, cont)
+        elif t is If:
+            ast, env, cont = ast.eval(env, cont)
+        elif t is Sequence:
+            ast, env, cont = ast.eval(env, cont)
+        else:
+            ast, env, cont = ast.eval(env, cont)
         # print "post: %s" % ast
         if isinstance(ast, Application):
             driver.can_enter_jit(ast=ast, prev=prev,
