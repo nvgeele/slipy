@@ -332,6 +332,22 @@ def cdr(args):
     return args[0].cdr()
 
 
+@declare_native("set-car!")
+def set_car(args):
+    assert len(args) == 2
+    assert isinstance(args[0], W_Pair)
+    args[0].set_car(args[1])
+    return args[1]
+
+
+@declare_native("set-cdr!")
+def set_cdr(args):
+    assert len(args) == 2
+    assert isinstance(args[0], W_Pair)
+    args[0].set_cdr(args[1])
+    return args[1]
+
+
 @declare_native("length")
 @jit.unroll_safe
 def list_length(args):

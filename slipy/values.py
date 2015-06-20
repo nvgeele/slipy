@@ -37,6 +37,12 @@ class W_Pair(W_SlipObject):
     def cdr(self):
         return self._cdr
 
+    def set_car(self, val):
+        self._car = val
+
+    def set_cdr(self, val):
+        self._cdr = val
+
     def _to_lstring(self):
         car = self._car.to_string()
         cdr = self._cdr
