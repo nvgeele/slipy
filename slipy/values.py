@@ -232,6 +232,8 @@ class W_Float(W_Number):
 
 
 class W_Boolean(W_SlipObject):
+    _immutable_fields_ = ["_value"]
+
     def __init__(self, value):
         self._value = value
 
@@ -244,6 +246,8 @@ class W_Boolean(W_SlipObject):
 
 
 class W_Symbol(W_SlipObject):
+    _immutable_fields_ = ["_str"]
+
     def __init__(self, str):
         self._str = str
 
@@ -261,6 +265,8 @@ class W_Symbol(W_SlipObject):
 
 
 class W_String(W_SlipObject):
+    _immutable_fields_ = ["_str"]
+
     def __init__(self, str):
         self._str = str
 
@@ -277,6 +283,8 @@ class W_Callable(W_SlipObject):
 
 
 class W_NativeFunction(W_Callable):
+    _immutable_fields_ = ["func"]
+
     def __init__(self, func):
         self._func = func
 
@@ -288,6 +296,8 @@ class W_NativeFunction(W_Callable):
 
 
 class W_Closure(W_Callable):
+    _immutable_fields_ = ["_args[*]", "_env", "_body"]
+
     def __init__(self, args, env, body):
         self._args = args
         self._env = env
@@ -308,6 +318,8 @@ class W_Closure(W_Callable):
 
 
 class W_Continuation(W_Callable):
+    _immutable_fields_ = ["_cont"]
+
     def __init__(self, cont):
         self._cont = cont
 

@@ -32,6 +32,7 @@ def _interpret(ast, env, cont):
         driver.jit_merge_point(ast=ast, prev=prev,
                                env=env, cont=cont)
         # write(str(cont.depth())+", ")
+        prev = ast
         ast, env, cont = ast.eval(env, cont)
         if isinstance(ast, Application):
             driver.can_enter_jit(ast=ast, prev=prev,
