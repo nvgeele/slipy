@@ -341,13 +341,8 @@ class W_Closure(W_Callable):
         if len(args) != len(self.args):
             raise SlipException("Incorrect length of argument list")
         new_env = Env(len(args)+len(self.vars), previous=self.env)
-
-        # for sym, val in zip(self._args, args):
-        #     new_env.add_var(sym, val)
-
         for i, val in enumerate(args):
             new_env.set_var(new_env.scope, i, val)
-
         return self.body, new_env, cont
 
     def __str__(self):

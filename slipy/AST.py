@@ -107,18 +107,19 @@ class Lambda(AST):
 
 # TODO: make_let_cont for jit promotion of length etc
 class Let(AST):
-    _immutable_fields_ = ["vars[*]", "vals[*]", "decls[*]", "body[*]"]
+    _immutable_fields_ = ["vars[*]", "vals[*]", "decls[*]", "body"]
 
     def __init__(self, vars, vals, decls, body):
         self.vars = vars
         self.vals = vals
         self.decls = decls
-        self.body = body
+        self.body = Sequence(body)
 
     def eval(self, env, cont):
         new_env = Env(len(self.vars) + len(self.decls), previous=env)
         if len(self.vars) == 0:
-            return Sequence(self.body), new_env, cont
+            # return Sequence(self.body), new_env, cont
+            return self.body, new_env, cont
         else:
             l_cont = LetContinuation(self, 0, cont, new_env)
             return self.vals[0], new_env, l_cont
@@ -131,8 +132,8 @@ class Let(AST):
         decls = [None] * len(self.decls)
         for i, var in enumerate(self.decls):
             decls[i] = var.to_string()
-        body = [None] * len(self.body)
-        for i, exp in enumerate(self.body):
+        body = [None] * len(self.body.body)
+        for i, exp in enumerate(self.body.body):
             body[i] = exp.to_string()
         return "(let (%s) (%s) %s)" % ("".join(vars),
                                        " ".join(decls),
@@ -159,23 +160,27 @@ class SetBang(AST):
         return "(set! %s %s)" % (self.sym.to_string(), self.val.to_string())
 
 
-# TODO: make_sequence_cont for jit promotion of length etc
 class Sequence(AST):
-    _immutable_fields_ = ["_exprs[*]"]
+    _immutable_fields_ = ["body[*]"]
 
     def __init__(self, exprs):
-        self._exprs = exprs
+        assert len(exprs) > 0, "Sequence body needs at least one expression"
+        self.body = exprs
 
     def eval(self, env, cont):
-        if len(self._exprs) == 1:
-            return self._exprs[0], env, cont
+        return self.make_cont(env, cont)
+
+    def make_cont(self, env, prev, i=0):
+        jit.promote(self)
+        jit.promote(i)
+        if i == len(self.body) - 1:
+            return self.body[i], env, prev
         else:
-            cont = SequenceContinuation(self._exprs, 1, env, cont)
-            return self._exprs[0], env, cont
+            return self.body[i], env, SequenceContinuation(self, i+1, env, prev)
 
     def __str__(self):
-        exprs = [None] * len(self._exprs)
-        for i, exp in enumerate(self._exprs):
+        exprs = [None] * len(self.body)
+        for i, exp in enumerate(self.body):
             exprs[i] = exp.to_string()
         exprs = " ".join(exprs)
         return "(begin %s)" % exprs
@@ -202,26 +207,22 @@ class VarRef(AST):
 
 
 class Program(AST):
-    _immutable_fields_ = ["vars[*]", "body[*]"]
+    _immutable_fields_ = ["vars[*]", "body"]
 
     def __init__(self, vars, body):
         self.vars = vars
-        self.body = body
+        self.body = Sequence(body)
 
     def eval(self, env, cont):
         env = Env(len(self.vars), previous=get_global_env())
-        if len(self.body) == 1:
-            return self.body[0], env, cont
-        else:
-            cont = SequenceContinuation(self.body, 1, env, cont)
-            return self.body[0], env, cont
+        return self.body, env, cont
 
     def __str__(self):
         vars = [None] * len(self.vars)
         for i, var in enumerate(self.vars):
             vars[i] = var.to_string()
-        body = [None] * len(self.body)
-        for i, exp in enumerate(self.body):
+        body = [None] * len(self.body.body)
+        for i, exp in enumerate(self.body.body):
             body[i] = exp.to_string()
 
         return "((%s) %s)" % (" ".join(vars), " ".join(body))
