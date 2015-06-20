@@ -119,7 +119,7 @@
 ;; The code had to be changed to support define and set! as expressions.
 
 (define primitives
-  '(not + - * / = < > <= >= exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set! void apply eval call/cc sin quotient set-car! set-cdr!))
+  '(not + - * / = < > <= >= exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set! void apply eval call/cc sin quotient set-car! set-cdr! call-with-current-continuation error fatal-error map eq? pair?))
 
 (define (atomic? exp)
   (match exp
@@ -342,6 +342,8 @@
         ,(lexical-address* aexp frame))]
     [`(begin . ,exps)
      `(begin ,@(map (lambda (e) (lexical-address* e frame)) exps))]
+    [`(quote . ,rands)
+     exp]
     [`(,rator . ,rands)
      `(,(let ([ref (get-address frame rator)])
           (if (eq? 'quote 'ref)
