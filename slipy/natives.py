@@ -10,10 +10,11 @@ native_dict = {}
 simple_natives = []
 _current_offset = 0
 
-# TODO: replace asserts with exceptions!!!
-# TODO: set-car!, set-cdr! + test with append if lists are copied properly
+arg_count_error = "%s: the correct amount of arguments was not supplied"
+arg_types_error = "%s: one or more operators have an incorrect type"
 
-# TODO: Fix type checking for RPython inferencing
+# TODO: test with append if lists are copied properly
+# TODO: automatic type checkers in declare_native
 def declare_native(name, simple=True):
     def wrapper(func):
         def inner(args, env, cont):
@@ -42,99 +43,118 @@ def declare_native(name, simple=True):
 
 @declare_native("not")
 def is_not(args):
-    assert len(args) == 1
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "not")
     return W_Boolean.from_value(args[0] is w_false)
 
 
-@declare_native("+") #, arguments=W_Number)
+@declare_native("+")
 @jit.unroll_safe
 def plus(args):
     if len(args) == 0:
         return W_Integer(0)
     elif len(args) == 1:
-        assert isinstance(args[0], W_Number)
+        if not isinstance(args[0], W_Number):
+            raise SlipException(arg_types_error % "+")
         return args[0]
     else:
         acc = args[0]
         for i in range(1, jit.promote(len(args))):
-            assert isinstance(args[i], W_Number)
+            if not isinstance(args[i], W_Number):
+                raise SlipException(arg_types_error % "+")
             acc = acc.add(args[i])
         return acc
 
 
-@declare_native("-") #, arguments=W_Number)
+@declare_native("-")
 @jit.unroll_safe
 def minus(args):
     if len(args) == 0:
         return W_Integer(0)
     elif len(args) == 1:
-        assert isinstance(args[0], W_Number)
+        if not isinstance(args[0], W_Number):
+            raise SlipException(arg_types_error % "-")
         return W_Integer(0).sub(args[0])
     else:
         acc = args[0]
         for i in range(1, jit.promote(len(args))):
-            assert isinstance(args[i], W_Number)
+            if not isinstance(args[i], W_Number):
+                raise SlipException(arg_types_error % "-")
             acc = acc.sub(args[i])
         return acc
 
 
-@declare_native("*") #, arguments=W_Number)
+@declare_native("*")
 @jit.unroll_safe
 def multiply(args):
     if len(args) == 0:
         return W_Integer(1)
     elif len(args) == 1:
-        assert isinstance(args[0], W_Number)
+        if not isinstance(args[0], W_Number):
+            raise SlipException(arg_types_error % "*")
         return args[0]
     else:
         acc = args[0]
         for i in range(1, jit.promote(len(args))):
-            assert isinstance(args[i], W_Number)
+            if not isinstance(args[i], W_Number):
+                raise SlipException(arg_types_error % "*")
             acc = acc.mul(args[i])
         return acc
 
 
-@declare_native("/") #, arguments=W_Number)
+@declare_native("/")
 @jit.unroll_safe
 def divide(args):
     if len(args) == 0:
         return W_Integer(1)
     elif len(args) == 1:
-        assert isinstance(args[0], W_Number)
+        if not isinstance(args[0], W_Number):
+            raise SlipException(arg_types_error % "/")
         return args[0]
     else:
         acc = args[0]
         for i in range(1, jit.promote(len(args))):
-            assert isinstance(args[i], W_Number)
+            if not isinstance(args[i], W_Number):
+                raise SlipException(arg_types_error % "/")
             acc = acc.div(args[i])
         return acc
 
 
 @declare_native("sin")
 def num_sin(args):
-    assert len(args) == 1
-    assert isinstance(args[0], W_Number)
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "sin")
+    if not isinstance(args[0], W_Number):
+        raise SlipException(arg_types_error % "sin")
+
     return W_Float(sin(args[0].value()))
 
 
 @declare_native("quotient")
 def num_quotient(args):
-    assert len(args) == 2
-    assert isinstance(args[0], W_Integer)
-    assert isinstance(args[1], W_Integer)
+    if not len(args) == 2:
+        raise SlipException(arg_count_error % "quotient")
+    if not isinstance(args[0], W_Number):
+        raise SlipException(arg_types_error % "quotient")
+    if not isinstance(args[1], W_Number):
+        raise SlipException(arg_types_error % "quotient")
+
     return W_Integer(args[0].value()/args[1].value())
 
 
-@declare_native("=") #, arguments=W_Number)
+@declare_native("=")
 @jit.unroll_safe
 def num_equal(args):
-    assert len(args) >= 2
+    if not len(args) >= 2:
+        raise SlipException(arg_count_error % "=")
     i = 2
     v = True
     while i <= jit.promote(len(args)):
         l, r = args[i-2], args[i-1]
-        assert isinstance(l, W_Number)
-        assert isinstance(r, W_Number)
+        if not isinstance(l, W_Number):
+            raise SlipException(arg_types_error % "=")
+        if not isinstance(r, W_Number):
+            raise SlipException(arg_types_error % "=")
         v = v and l.is_eq(r)
         if not v:
             return w_false
@@ -142,16 +162,19 @@ def num_equal(args):
     return W_Boolean.from_value(v)
 
 
-@declare_native("<") #, arguments=W_Number)
+@declare_native("<")
 @jit.unroll_safe
 def num_lt(args):
-    assert len(args) >= 2
+    if not len(args) >= 2:
+        raise SlipException(arg_count_error % "<")
     i = 2
     v = True
     while i <= jit.promote(len(args)):
         l, r = args[i-2], args[i-1]
-        assert isinstance(l, W_Number)
-        assert isinstance(r, W_Number)
+        if not isinstance(l, W_Number):
+            raise SlipException(arg_types_error % "<")
+        if not isinstance(r, W_Number):
+            raise SlipException(arg_types_error % "<")
         v = v and l.lt(r)
         if not v:
             return w_false
@@ -159,16 +182,19 @@ def num_lt(args):
     return W_Boolean.from_value(v)
 
 
-@declare_native(">") #, arguments=W_Number)
+@declare_native(">")
 @jit.unroll_safe
 def num_gt(args):
-    assert len(args) >= 2
+    if not len(args) >= 2:
+        raise SlipException(arg_count_error % ">")
     i = 2
     v = True
     while i <= jit.promote(len(args)):
         l, r = args[i-2], args[i-1]
-        assert isinstance(l, W_Number)
-        assert isinstance(r, W_Number)
+        if not isinstance(l, W_Number):
+            raise SlipException(arg_types_error % ">")
+        if not isinstance(r, W_Number):
+            raise SlipException(arg_types_error % ">")
         v = v and l.gt(r)
         if not v:
             return w_false
@@ -176,16 +202,19 @@ def num_gt(args):
     return W_Boolean.from_value(v)
 
 
-@declare_native("<=") #, arguments=W_Number)
+@declare_native("<=")
 @jit.unroll_safe
 def num_le(args):
-    assert len(args) >= 2
+    if not len(args) >= 2:
+        raise SlipException(arg_count_error % "<=")
     i = 2
     v = True
     while i <= jit.promote(len(args)):
         l, r = args[i-2], args[i-1]
-        assert isinstance(l, W_Number)
-        assert isinstance(r, W_Number)
+        if not isinstance(l, W_Number):
+            raise SlipException(arg_types_error % "<=")
+        if not isinstance(r, W_Number):
+            raise SlipException(arg_types_error % "<=")
         v = v and l.le(r)
         if not v:
             return w_false
@@ -193,16 +222,19 @@ def num_le(args):
     return W_Boolean.from_value(v)
 
 
-@declare_native(">=") #, arguments=W_Number)
+@declare_native(">=")
 @jit.unroll_safe
 def num_ge(args):
-    assert len(args) >= 2
+    if not len(args) >= 2:
+        raise SlipException(arg_count_error % ">=")
     i = 2
     v = True
     while i <= jit.promote(len(args)):
         l, r = args[i-2], args[i-1]
-        assert isinstance(l, W_Number)
-        assert isinstance(r, W_Number)
+        if not isinstance(l, W_Number):
+            raise SlipException(arg_types_error % ">=")
+        if not isinstance(r, W_Number):
+            raise SlipException(arg_types_error % ">=")
         v = v and l.ge(r)
         if not v:
             return w_false
@@ -212,16 +244,23 @@ def num_ge(args):
 
 @declare_native("exact->inexact")
 def exact_inexact(args):
-    assert len(args) == 1
-    assert isinstance(args[0], W_Integer)
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "exact->inexact")
+    if not isinstance(args[0], W_Integer):
+        raise SlipException(arg_types_error % "exact->inexact")
     return W_Float(args[0].value())
 
 
-@declare_native("apply", simple=False) #, arguments=[W_Callable, W_Pair])
+@declare_native("apply", simple=False)
 def apply(args, env, cont):
+    if not len(args) == 2:
+        raise SlipException(arg_count_error % "apply")
     fn = args[0]
-    assert isinstance(fn, W_Callable)
-    assert isinstance(args[1], W_Pair)
+    if not isinstance(fn, W_Callable):
+        raise SlipException(arg_types_error % "apply")
+    if not isinstance(args[1], W_Pair):
+        raise SlipException(arg_types_error % "apply")
+
     try:
         # TODO: vals_from_list
         actual_args = from_list(args[1])
@@ -230,36 +269,43 @@ def apply(args, env, cont):
     return fn.call(actual_args, env, cont)
 
 
-@declare_native("call/cc", simple=False) #, arguments=[W_Callable])
+@declare_native("call/cc", simple=False)
 def callcc(args, env, cont):
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "call/cc")
     fn = args[0]
-    assert isinstance(fn, W_Callable)
+    if not isinstance(fn, W_Callable):
+        raise SlipException(arg_types_error % "call/cc")
     return fn.call([W_Continuation(cont)], env, cont)
 
 
 @declare_native("time")
 def slip_time(args):
-    assert len(args) == 0
+    if not len(args) == 0:
+        raise SlipException(arg_count_error % "time")
     return W_Float(time.time())
 
 
 @declare_native("display")
 def display(args):
-    assert len(args) == 1
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "display")
     write(args[0].to_display())
     return w_void
 
 
 @declare_native("displayln")
 def displayln(args):
-    assert len(args) == 1
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "displayln")
     print args[0].to_display()
     return w_void
 
 
 @declare_native("newline")
 def newline(args):
-    assert len(args) == 0
+    if not len(args) == 0:
+        raise SlipException(arg_count_error % "newline")
     print ""
     return w_void
 
@@ -281,11 +327,6 @@ def list_from_values(vals):
         return cur
 
 
-@declare_native("list")
-def list(args):
-    return list_from_values(args)
-
-
 # TODO: move to appropriate place
 # XXX: this unroll_safe annotation causes the compiler to segfault... yes.
 # @jit.unroll_safe
@@ -300,50 +341,68 @@ def values_from_list(pair):
     else:
         raise SlipException("Improper list")
 
+
+@declare_native("list")
+def list(args):
+    return list_from_values(args)
+
+
 # TODO: Support more than 2 args
 @declare_native("append")
 def append(args):
-    assert len(args) == 2
-    v1 = values_from_list(args[0])
-    v2 = values_from_list(args[1])
-    return list_from_values(v1+v2)
+    if not len(args) == 2:
+        raise SlipException(arg_count_error % "append")
+    try:
+        v1 = values_from_list(args[0])
+        v2 = values_from_list(args[1])
+        return list_from_values(v1+v2)
+    except SlipException:
+        raise SlipException("append: expected proper lists as arguments")
 
 
 @declare_native("cons")
 def cons(args):
-    assert len(args) == 2
-    # TODO: We shouldn't need these assertions
+    if not len(args) == 2:
+        raise SlipException(arg_count_error % "cons")
     assert isinstance(args[0], W_SlipObject)
     assert isinstance(args[1], W_SlipObject)
     return W_Pair(args[0], args[1])
 
 
-@declare_native("car") #, arguments=[W_Pair])
+@declare_native("car")
 def car(args):
-    assert len(args) == 1
-    assert isinstance(args[0], W_Pair)
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "car")
+    if not isinstance(args[0], W_Pair):
+        raise SlipException(arg_types_error % "car")
     return args[0].car()
 
 
-@declare_native("cdr") #, arguments=[W_Pair])
+@declare_native("cdr")
 def cdr(args):
-    assert len(args) == 1
-    assert isinstance(args[0], W_Pair)
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "cdr")
+    if not isinstance(args[0], W_Pair):
+        raise SlipException(arg_types_error % "cdr")
     return args[0].cdr()
 
 
 @declare_native("set-car!")
 def set_car(args):
-    assert len(args) == 2
-    assert isinstance(args[0], W_Pair)
+    if not len(args) == 2:
+        raise SlipException(arg_count_error % "set-car!")
+    if not isinstance(args[0], W_Pair):
+        raise SlipException(arg_types_error % "set-car!")
     args[0].set_car(args[1])
     return args[1]
 
 
 @declare_native("set-cdr!")
 def set_cdr(args):
-    assert len(args) == 2
-    assert isinstance(args[0], W_Pair)
+    if not len(args) == 2:
+        raise SlipException(arg_count_error % "set-cdr!")
+    if not isinstance(args[0], W_Pair):
+        raise SlipException(arg_types_error % "set-cdr!")
     args[0].set_cdr(args[1])
     return args[1]
 
@@ -351,8 +410,10 @@ def set_cdr(args):
 @declare_native("length")
 @jit.unroll_safe
 def list_length(args):
-    assert len(args) == 1
-    assert isinstance(args[0], W_Pair)
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "length")
+    if not isinstance(args[0], W_Pair):
+        raise SlipException(arg_types_error % "length")
     length = 1
     cur = args[0]
     while True:
@@ -368,7 +429,8 @@ def list_length(args):
 
 @declare_native("null?")
 def is_null(args):
-    assert len(args) == 1
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "null?")
     if args[0] is w_empty:
         return w_true
     else:
@@ -381,16 +443,19 @@ def read(args):
     # TODO: multiline input
     # TODO: no more raw input
     # TODO: read string
-    assert len(args) == 0
+    if not len(args) == 0:
+        raise SlipException(arg_count_error % "read")
     input = raw_input('')
     data = read_string(input)
     return parse_data(data)
 
 
-@declare_native("eval", simple=False) #, arguments=[W_Pair])
+@declare_native("eval", simple=False)
 def eval(args, env, cont):
     from slipy.parse import parse_ast
     from slipy.interpreter import interpret_with_env, return_value_direct
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "eval")
     form = args[0]
     # TODO: fix %s stuff
     expanded = expand_string("(%s)" % form.to_string())
@@ -406,33 +471,43 @@ def vector(args):
 
 @declare_native("make-vector")
 def make_vector(args):
-    assert len(args) == 2
+    if not len(args) == 2:
+        raise SlipException(arg_count_error % "make-vector")
     size = args[0]
-    assert isinstance(size, W_Integer)
+    if not isinstance(size, W_Integer):
+        raise SlipException(arg_types_error % "make-vector")
     return W_Vector.make(size.value(), args[1])
 
 
 @declare_native("vector-length")
 def vector_length(args):
-    assert len(args) == 1
-    assert isinstance(args[0], W_Vector)
+    if not len(args) == 1:
+        raise SlipException(arg_count_error % "vector-length")
+    if not isinstance(args[0], W_Vector):
+        raise SlipException(arg_types_error % "vector-length")
     return W_Integer(args[0].length())
 
 
 @declare_native("vector-ref")
 def vector_ref(args):
-    assert len(args) == 2
+    if not len(args) == 2:
+        raise SlipException(arg_count_error % "vector-ref")
     idx = args[1]
-    assert isinstance(args[0], W_Vector)
-    assert isinstance(idx, W_Integer)
+    if not isinstance(args[0], W_Vector):
+        raise SlipException(arg_types_error % "vector-ref")
+    if not isinstance(idx, W_Integer):
+        raise SlipException(arg_types_error % "vector-ref")
     return args[0].ref(idx.value())
 
 
 @declare_native("vector-set!")
 def vector_set(args):
-    assert len(args) == 3
+    if not len(args) == 3:
+        raise SlipException(arg_count_error % "vector-set!")
     idx = args[1]
-    assert isinstance(args[0], W_Vector)
-    assert isinstance(idx, W_Integer)
+    if not isinstance(args[0], W_Vector):
+        raise SlipException(arg_types_error % "vector-set!")
+    if not isinstance(idx, W_Integer):
+        raise SlipException(arg_types_error % "vector-set!")
     args[0].set(idx.value(), args[2])
     return args[2]
