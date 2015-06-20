@@ -26,11 +26,7 @@ def _parse_value(val):
     elif type == 'string':
         assert val['val'].is_string
         return W_String(val['val'].string_value())
-    elif type == 'char':
-        # TODO: Or are they supported?
-        raise Exception("chars not supported")
     else:
-        # TODO: remove eventually
         raise Exception("_parse_value exception")
 
 
@@ -96,7 +92,6 @@ def _parse_dict(dict):
             raise SlipException("Empty begin form is not allowed!")
         return Sequence(body)
     elif type == 'quoted-list':
-        # TODO: is list part of AST or a value that can be mutated?
         assert dict['val'].is_list
         list = _parse_list(dict['val'].list_value())
         return Quote(list)
@@ -115,13 +110,6 @@ def _parse_dict(dict):
         assert dict['val'].is_string
         obj = W_String(dict['val'].string_value())
         return Quote(obj)
-    elif type == 'char':
-        # TODO: Or are they supported?
-        raise Exception("chars not supported")
-    # elif type == 'var':
-    #     assert dict['val'].is_string
-    #     sym = W_Symbol.from_string(dict['val'].string_value())
-    #     return VarRef(sym)
     elif type == 'nat-ref':
         assert dict['symbol'].is_string
         symbol = W_Symbol.from_string(dict['symbol'].string_value())
@@ -146,8 +134,6 @@ def _parse_dict(dict):
     elif type == 'set':
         assert dict['target'].is_object
         assert dict['val'].is_object
-        # target = W_Symbol.from_string(dict['target'].string_value())
-        # return SetBang(target, _parse_dict(dict['val'].object_value()))
         target = _parse_dict(dict['target'].object_value())
         val = _parse_dict(dict['val'].object_value())
         assert isinstance(target, VarRef)
@@ -163,24 +149,16 @@ def _parse_dict(dict):
         assert dict['vals'].is_list
         assert dict['body'].is_list
         assert dict['decls'].is_list
-        # sym = W_Symbol.from_string(dict['var'].string_value())
-        # val = _parse_dict(dict['val'].object_value())
-        # body = _parse_exp_list(dict['body'].list_value())
-        # return Let(sym, val, body)
         vars = _vars_to_syms(dict['vars'].list_value())
         decls = _vars_to_syms(dict['decls'].list_value())
         body = _parse_exp_list(dict['body'].list_value())
         vals = _parse_exp_list(dict['vals'].list_value())
         return Let(vars, vals, decls, body)
     else:
-        # TODO: remove once we're finished
         raise Exception("Invalid key")
 
 
 def _parse_program(program):
-    # print program
-    # if program.is_string:
-    #     print program.string_value()
     assert program.is_object
     program = program.object_value()
     assert program['vars'].is_list

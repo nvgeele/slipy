@@ -2,9 +2,7 @@ from rpython.rlib import jit
 from slipy.exceptions import *
 from slipy.continuation import *
 
-# TODO: __str__ for all classes
-# TODO: getters and setters?
-# TODO: memoized constructors for nums etc?
+# TODO: memoized constructors for numbers?
 
 _symbol_pool = {}
 
@@ -24,8 +22,7 @@ class W_SlipObject(object):
 
 
 class W_Pair(W_SlipObject):
-    # TODO: set! operations
-    # TODO: Fix for to_display
+    # TODO: implement to_display
 
     def __init__(self, car, cdr):
         self._car = car
@@ -84,7 +81,6 @@ class W_Vector(W_SlipObject):
     def length(self):
         return self.len
 
-    # TODO: Fix for to_display
     def __str__(self):
         vals = [None] * self.len
         for i, val in enumerate(self._values):
@@ -98,7 +94,6 @@ class W_Null(W_SlipObject):
         return "()"
 
 
-# TODO: Specialized classes for different types of numbers (trick)
 class W_Number(W_SlipObject):
     is_int = is_float = False
 
@@ -343,7 +338,6 @@ class W_Closure(W_Callable):
     @jit.unroll_safe
     def call(self, args, env, cont):
         from slipy.environment import Env
-        # TODO: stuff like len calls could be optimized maybe?
         if len(args) != len(self.args):
             raise SlipException("Incorrect length of argument list")
         new_env = Env(len(args)+len(self.vars), previous=self.env)

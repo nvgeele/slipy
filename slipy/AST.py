@@ -226,6 +226,7 @@ class Program(AST):
 
         return "((%s) %s)" % (" ".join(vars), " ".join(body))
 
+# TODO: if val is a list, return copy
 class Quote(AST):
     _immutable_fields_ = ["_val"]
     simple = True
