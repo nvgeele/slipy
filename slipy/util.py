@@ -13,7 +13,6 @@ def write(text):
 
 
 # RPython has no zip, unfortunately
-# TODO: better performance?
 def zip(l1, l2):
     if not l1:
         return []

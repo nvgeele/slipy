@@ -86,7 +86,7 @@ class ReaderRPython(object):
             raise Exception("Racket reader can not be accessed")
         pipe = create_popen_file(cmd, "w")
         input = "(%s %s)" % (modus, input)
-        # TODO: might go wrong when dealing with UNICODE
+        # NOTE: might go wrong when dealing with UNICODE
         pipe.write(input)
         pipe.write("\n\0\n")
         pipe.flush()
@@ -146,7 +146,7 @@ def expand_file(path):
     f = streamio.open_file_as_stream(path)
     s = f.readall()
     f.close()
-    return _reader.reader.expand(s)
+    return _reader.reader.expand("(%s)" % s)
 
 
 def init_reader():

@@ -1,12 +1,6 @@
 from rpython.rlib import jit
-from slipy.environment import Env
 from slipy.exceptions import *
 from slipy.continuation import *
-from slipy.util import zip
-
-# TODO: __str__ for all classes
-# TODO: getters and setters?
-# TODO: memoized constructors for nums etc?
 
 _symbol_pool = {}
 
@@ -26,8 +20,7 @@ class W_SlipObject(object):
 
 
 class W_Pair(W_SlipObject):
-    # TODO: set! operations
-    # TODO: Fix for to_display
+    # TODO: implement to_display
 
     def __init__(self, car, cdr):
         self._car = car
@@ -38,6 +31,12 @@ class W_Pair(W_SlipObject):
 
     def cdr(self):
         return self._cdr
+
+    def set_car(self, val):
+        self._car = val
+
+    def set_cdr(self, val):
+        self._cdr = val
 
     def _to_lstring(self):
         car = self._car.to_string()
@@ -55,31 +54,33 @@ class W_Pair(W_SlipObject):
 
 
 class W_Vector(W_SlipObject):
-    _imutable_fields_ = ["length"]
+    _immutable_fields_ = ["len"]
 
     def __init__(self, values, length):
         self._values = values
-        self.length = length
+        self.len = length
 
-    # TODO: Unroll safe?
     @staticmethod
+    @jit.unroll_safe
     def make(length, val):
         vals = [val] * length
         return W_Vector(vals, length)
 
     def ref(self, idx):
-        if idx >= self.length:
+        if idx >= self.len:
             raise SlipException("index out of bounds")
         return self._values[idx]
 
     def set(self, idx, val):
-        if idx >= self.length:
+        if idx >= self.len:
             raise SlipException("index out of bounds")
         self._values[idx] = val
 
-    # TODO: Fix for to_display
+    def length(self):
+        return self.len
+
     def __str__(self):
-        vals = [None] * self.length
+        vals = [None] * self.len
         for i, val in enumerate(self._values):
             vals[i] = val.to_string()
         vals = " ".join(vals)
@@ -91,7 +92,6 @@ class W_Null(W_SlipObject):
         return "()"
 
 
-# TODO: Specialized classes for different types of numbers (trick)
 class W_Number(W_SlipObject):
     is_int = is_float = False
 
@@ -116,9 +116,15 @@ class W_Number(W_SlipObject):
     def gt(self, other):
         raise Exception("abstract method")
 
+    def le(self, other):
+        raise Exception("abstract method")
+
+    def ge(self, other):
+        raise Exception("abstract method")
+
 
 class W_Integer(W_Number):
-    _imutable_fields_ = ["_val"]
+    _immutable_fields_ = ["_val"]
 
     is_int = True
 
@@ -173,9 +179,21 @@ class W_Integer(W_Number):
         else:
             return other.lt(self)
 
+    def le(self, other):
+        if isinstance(other, W_Integer):
+            return self._val <= other.value()
+        else:
+            return other.ge(self)
+
+    def ge(self, other):
+        if isinstance(other, W_Integer):
+            return self._val >= other.value()
+        else:
+            return other.le(self)
+
 
 class W_Float(W_Number):
-    _imutable_fields_ = ["_val"]
+    _immutable_fields_ = ["_val"]
 
     is_float = True
 
@@ -230,6 +248,18 @@ class W_Float(W_Number):
         else:
             return self._val > float(other.value())
 
+    def le(self, other):
+        if isinstance(other, W_Float):
+            return self._val <= other.value()
+        else:
+            return self._val <= float(other.value())
+
+    def ge(self, other):
+        if isinstance(other, W_Float):
+            return self._val >= other.value()
+        else:
+            return self._val >= float(other.value())
+
 
 class W_Boolean(W_SlipObject):
     _immutable_fields_ = ["_value"]
@@ -265,8 +295,6 @@ class W_Symbol(W_SlipObject):
 
 
 class W_String(W_SlipObject):
-    _immutable_fields_ = ["_str"]
-
     def __init__(self, str):
         self._str = str
 
@@ -296,22 +324,24 @@ class W_NativeFunction(W_Callable):
 
 
 class W_Closure(W_Callable):
-    _immutable_fields_ = ["_args[*]", "_env", "_body"]
+    _immutable_fields_ = ["args[*]", "vars[*]", "env", "body"]
 
-    def __init__(self, args, env, body):
-        self._args = args
-        self._env = env
-        self._body = body
+    def __init__(self, args, vars, env, body):
+        from slipy.AST import Sequence
+        self.args = args
+        self.env = env
+        self.body = Sequence(body)
+        self.vars = vars
 
     @jit.unroll_safe
     def call(self, args, env, cont):
-        # TODO: stuff like len calls could be optimized maybe?
-        if len(args) != len(self._args):
+        from slipy.environment import Env
+        if len(args) != len(self.args):
             raise SlipException("Incorrect length of argument list")
-        new_env = Env(previous=self._env)
-        for sym, val in zip(self._args, args):
-            new_env.add_var(sym, val)
-        return self._body, new_env, cont
+        new_env = Env(len(args)+len(self.vars), previous=self.env)
+        for i, val in enumerate(args):
+            new_env.set_var(new_env.scope, i, val)
+        return self.body, new_env, cont
 
     def __str__(self):
         return "#<closure>"
@@ -358,12 +388,24 @@ def is_true(val):
     return not(isinstance(val, W_Boolean) and val is w_false)
 
 
-def from_list(obj):
-    list = []
-    current = obj
-    while isinstance(current, W_Pair):
-        list.append(current.car())
-        current = current.cdr()
-    if not current is w_empty:
-        raise SlipException("Malformed list")
-    return list
+@jit.unroll_safe
+def list_from_values(vals):
+    if len(vals) == 0:
+        return w_empty
+    else:
+        cur = w_empty
+        for i in range(len(vals)-1, -1, -1):
+            cur = W_Pair(vals[i], cur)
+        return cur
+
+
+def values_from_list(pair):
+    result = []
+    curr = pair
+    while isinstance(curr, W_Pair):
+        result.append(curr.car())
+        curr = curr.cdr()
+    if curr is w_empty:
+        return result
+    else:
+        raise SlipException("Improper list")

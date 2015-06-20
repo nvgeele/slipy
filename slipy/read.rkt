@@ -30,9 +30,9 @@
 
 ;; <prog> ::= <dec> ... <exp> ...
 ;;
-;; <dec> ::= (define <var> '())
+;; <dec> ::= <var>
 ;;
-;; <aexp> ::= (lambda (<name> ...) <dec> ... <exp>)
+;; <aexp> ::= (lambda (<name> ...) (<dec>*) <exp>+)
 ;;         |  <number>
 ;;         |  <boolean>
 ;;         |  <string>
@@ -41,14 +41,13 @@
 ;;         |  <quoted list>
 ;;         |  (void)
 ;;
-;; <cexp> ::= (<aexp> <aexp> ...)
+;; <cexp> ::= (<aexp> <aexp>*)
 ;;         |  (if <aexp> <exp> <exp>)
 ;;         |  (set! <var> <aexp>)
 ;;         |  (begin <exp> ...)
 ;;         |  <aexp>
 ;;
-;; <exp> ::= (let ([<var> <cexp>]) <dec> ... <exp>)
-;;        |  (let () <dec> ... <exp> ...)
+;; <exp> ::= (let ([<var> <cexp>]*) (<dec>*) <exp>+)
 ;;        |  <aexp>
 ;;        |  <cexp>
 
@@ -86,7 +85,8 @@
                     (primitive? rkt-primitive?))
          json)
 
-(provide do-read read-loop slip-expand slip-read)
+#;(provide do-read read-loop slip-expand slip-read)
+(provide (all-defined-out))
 
 ;; TODO: merge normalize and json generation
 ;; TODO: What about reading cons cells?
@@ -105,8 +105,10 @@
   (set! stack (cons decls stack))
   (set! decls '()))
 (define (pop-scope!)
-  (set! decls (car stack))
-  (set! stack (cdr stack)))
+  (let ([vars decls])
+    (set! decls (car stack))
+    (set! stack (cdr stack))
+    vars))
 (define (clear-scope!)
   (set! decls '()))
 (define (clear-stack!)
@@ -117,7 +119,7 @@
 ;; The code had to be changed to support define and set! as expressions.
 
 (define primitives
-  '(not + - * / = < > exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set!))
+  '(not + - * / = < > <= >= exact->inexact time display displayln newline void list append cons car cdr length null? read vector make-vector vector-length vector-ref vector-set! void apply eval call/cc sin quotient set-car! set-cdr! call-with-current-continuation error fatal-error map eq? pair? sqrt))
 
 (define (atomic? exp)
   (match exp
@@ -128,94 +130,110 @@
     ;; TODO: does slip have chars?
     [(? char?) #t]
     [(? symbol?) #t]
-    ;;[(or '+ '- '* '/ '=) #t]
-    ;; TODO: remove this primitives thing
+    ;; TODO: are primitives necessary?
     [else (or (member exp primitives) #f)]))
 
-;; Currently, all let's are actually let*'s
-;; If this behaviour is not wanted, we must allow the grammar to allow
-;; let's with multiple bindings.
-;; A letrec could be implemented using a var-let
+;; Returns all items that are exclusively in l2
+(define (djl l1 l2)
+  (let ([s1 (list->set l1)]
+        [s2 (list->set l2)])
+    (set->list (set-subtract s2 s1))))
+
+(define (contract-let exp)
+  (define (inner exp bindings all-vars)
+    (match exp
+      [`(let (,binding) ,vars ,body)
+       (inner body (cons binding bindings) (cons vars all-vars))]
+      [`(let (,binding) ,vars . ,body)
+       (let ((bindings (cons binding bindings)))
+         `(let (,@(reverse bindings))
+            ,(djl (map car bindings) (flatten (cons vars all-vars)))
+            ,@body))]
+      [`(let (,binding . ,rest) ,vars . ,body)
+       (inner `(let (,@rest) ,vars ,@body)
+              (cons binding bindings)
+              all-vars)]
+      [else
+       `(let (,@(reverse bindings))
+          ,(djl (map car bindings) (flatten all-vars))
+          ,exp)]))
+  (if (and (list? exp) (eq? (car exp) 'let))
+      (inner exp '() '())
+      exp))
+
 (define (normalize-let bindings body k)
-  (define (helper bindings)
-    (match bindings
-      [`([,x ,exp] . ,clause)
-       (normalize exp (lambda (aexp)
-                        `(let ([,x ,aexp])
-                           ,@(if (null? clause)
-                                 (map normalize-term body)
-                                 (list (helper clause))))))]))
+  (define vars (map car bindings))
+  (define exps (map cadr bindings))
   (push-scope!)
-  (let* ([let (helper bindings)]
-         [vars decls])
-    (pop-scope!)
-    `(let ()
-       ,@(for/list ([var vars])
-           `(define ,var '()))
-       ,let)))
+  (define e
+    (contract-let
+     (foldr (lambda (var b-exp exp)
+              (normalize b-exp
+                         (lambda (aexp)
+                           `(let ([,var ,aexp]) ()
+                              ,exp))))
+            '()
+            vars
+            exps)))
+  (match e
+    [`(let ,bindings () ())
+     (let ([body (map normalize-term body)])
+       (k `(let ,bindings
+             ,(djl vars (pop-scope!))
+             ,@body)))]
+    [else
+     (pretty-print e)
+     (error "no matching")]))
 
 ;; TODO: test (lambda x x)
-;; TODO: optimize excessive frames for define/set!
+;; TODO: optimise excessive frames for define/set!
 (define (normalize exp k)
   (match exp
-   [`(begin . ,body)
-    (k `(begin ,@(map normalize-term body)))]
+    [`(begin . ,body)
+     (k `(begin ,@(map normalize-term body)))]
 
     [`(lambda ,params . ,body)
      (push-scope!)
-     (let* ([nt (map normalize-term body)]
-            [vars decls])
-       (pop-scope!)
+     (let ([nt (map normalize-term body)])
        (k `(lambda ,params
-             ,@(for/list ([var vars])
-                 `(define ,var '()))
+             ,(djl params (pop-scope!))
              ,@nt)))]
 
     [`(let () . ,exps)
      (push-scope!)
-     (let* ([nt (map normalize-term exps)]
-            [vars decls])
-       (pop-scope!)
+     (let* ([nt (map normalize-term exps)])
        (k `(let ()
-             ,@(for/list ([var vars])
-                 `(define ,var '()))
+             ,(pop-scope!)
              ,@nt)))]
 
     [`(let ,bindings . ,body)
-     ;; TODO: body with multiple exprs
      (normalize-let bindings body k)]
 
 
     [`(if ,exp1 ,exp2 ,exp3)
      ;; TODO: Improve this horrible code
-     (let-values ([(con vars1)
-                   (begin
-                     (push-scope!)
-                     (let ([e (normalize-term exp2)]
-                           [vars decls])
-                       (pop-scope!)
-                       (values e vars)))]
-                  [(alt vars2)
-                   (begin
-                     (push-scope!)
-                     (let ([e (normalize-term exp3)]
-                           [vars decls])
-                       (pop-scope!)
-                       (values e vars)))])
-       (normalize-name exp1 (lambda (t)
-                              (k `(if ,t
-                                      ,(if (= (length vars1) 0)
-                                           con
-                                           `(let ()
-                                              ,@(for/list ([var vars1])
-                                                  `(define ,var '()))
-                                              ,con))
-                                      ,(if (= (length vars2) 0)
-                                           alt
-                                           `(let ()
-                                              ,@(for/list ([var vars2])
-                                                  `(define ,var '()))
-                                              ,alt)))))))]
+     ;; Note how we assume arguments are eval'd l->r
+     (let-values ([(con vars1) (begin
+                                 (push-scope!)
+                                 (values (normalize-term exp2)
+                                         (pop-scope!)))]
+                  [(alt vars2) (begin (push-scope!)
+                                      (values (normalize-term exp3)
+                                              (pop-scope!)))])
+       (normalize-name
+        exp1
+        (lambda (t)
+          (k `(if ,t
+                  ,(if (= (length vars1) 0)
+                       con
+                       `(let ()
+                          ,vars1
+                          ,con))
+                  ,(if (= (length vars2) 0)
+                       alt
+                       `(let ()
+                          ,vars2
+                          ,alt)))))))]
 
     [`(set! ,v ,exp)
      (normalize-name exp (lambda (t)
@@ -248,7 +266,7 @@
                (if (atomic? aexp)
                    (k aexp)
                    (let ([t (gensym)])
-                     `(let ([,t ,aexp])
+                     `(let ([,t ,aexp]) ()
                         ,(k t)))))))
 
 (define (normalize-name* exp* k)
@@ -261,24 +279,86 @@
                                            (k `(,t . ,t*))))))))
 
 (define (normalize-term exp)
-  (normalize exp (lambda (k) k)))
+  (contract-let (normalize exp identity)))
 
 (define (normalize-program exps)
-  (define (helper exps)
-    (match exps
-      ['()
-       '()]
-      [(cons exp rest)
-       (cons (normalize-term exp)
-             (helper rest))]))
   (clear-scope!)
   (clear-stack!)
-  (let ([transformed (helper exps)])
-    `(,@(for/list ([var decls])
-          `(define ,var '()))
-      ,@(if (eq? (car transformed) 'begin)
-            (cdr transformed)
-            transformed))))
+  (let ([transformed (map normalize-term exps)])
+    (cons decls transformed)))
+
+;;
+;; Lexical Addressing
+;;
+
+(struct frame (scope bindings previous)
+        #:transparent)
+(struct ref ())
+(struct lex-ref ref (symbol scope offset)
+        #:transparent)
+(struct nat-ref ref (symbol)
+        #:transparent)
+
+(define (make-frame vars previous)
+  (frame (if previous
+             (+ 1 (frame-scope previous))
+             1)
+         (for/hash ([v vars]
+                    [o (range 0 (length vars))])
+           (values v o))
+         previous))
+
+(define (get-address frame symbol)
+  (define h (frame-bindings frame))
+  (define o (hash-ref h symbol #f))
+  (cond [o (lex-ref symbol (frame-scope frame) o)]
+        [(frame-previous frame)
+         (get-address (frame-previous frame) symbol)]
+        [(member symbol primitives)
+         (nat-ref symbol)]
+        [else symbol]))
+
+(define (lexical-address* exp frame)
+  (match exp
+    [`(let ,bindings ,vars . ,body)
+     (let* ([new-frame (make-frame (append (map car bindings) vars) frame)]
+            [bindings (for/list ([binding bindings])
+                        `(,(car binding)
+                          ,(lexical-address* (cadr binding) new-frame)))])
+       `(let ,bindings
+          ,vars
+          ,@(map (lambda (e) (lexical-address* e new-frame)) body)))]
+    [`(lambda ,params ,vars . ,body)
+     (let* ([new-frame (make-frame (append params vars) frame)])
+       `(lambda ,params
+          ,vars
+          ,@(map (lambda (e) (lexical-address* e new-frame)) body)))]
+    [`(if ,test ,con ,alt)
+     `(if ,(get-address frame test)
+          ,(lexical-address* con frame)
+          ,(lexical-address* alt frame))]
+    [`(set! ,var ,aexp)
+     `(set! ,(lexical-address* var frame)
+        ,(lexical-address* aexp frame))]
+    [`(begin . ,exps)
+     `(begin ,@(map (lambda (e) (lexical-address* e frame)) exps))]
+    [`(quote . ,rands)
+     exp]
+    [`(,rator . ,rands)
+     `(,(let ([ref (get-address frame rator)])
+          (if (eq? 'quote 'ref)
+              'quote
+              ref))
+       ,@(map (lambda (e) (lexical-address* e frame)) rands))]
+    [(? symbol?)
+     (get-address frame exp)]
+    [else exp]))
+
+(define (lexical-address program)
+  (let ([frame (make-frame (car program) #f)])
+    (cons (car program)
+          (map (lambda (e) (lexical-address* e frame))
+               (cdr program)))))
 
 ;;
 ;; JSON serialization
@@ -292,7 +372,9 @@
     [(? boolean?) #t]
     [(? string?) #t]
     [(? char?) #t]
-    [(? symbol?) #t]
+    [(? ref?) #t]
+    ;; TODO: remove symbol?
+    ;; [(? symbol?) #t]
     ['() #t]
     [else #f]))
 
@@ -300,14 +382,9 @@
   (match exp
     [`(if . ,_) #t]
     [`(set! . ,_) #t]
-    [`(begin . ,_) #t]
+    ;; [`(begin . ,_) #t]
     [(list aexps ...) (andmap aexp? aexps)]
     [else #f]))
-
-(define (lambda->json vars body)
-  (hash 'type "lambda"
-        'vars (map symbol->string vars)
-        'body (var-let->json body)))
 
 (define (list->json list)
   (match list
@@ -335,25 +412,24 @@
                     'val (symbol->string e))])
            (list->json rest))]))
 
-(define (var-let->json body)
-  ;; TODO: is de body wel correct
-  (define (helper exp vars exps)
-    (match exp
-      [(cons `(define ,var '()) rest)
-       (helper rest (cons var vars) exps)]
-      [(cons exp '())
-       (values (reverse (cons (exp->json exp) exps)) vars)]
-      [(cons exp rest)
-       (helper rest vars (cons (exp->json exp) exps))]))
-  (let-values ([(exps vars) (helper body '() '())])
-    (hash 'type "var-let"
-          'vars (map symbol->string vars)
-          'body exps)))
+(define (ref->json ref)
+  (cond ((nat-ref? ref)
+         (hash 'type "nat-ref"
+               'symbol (symbol->string (nat-ref-symbol ref))))
+        ((lex-ref? ref)
+         (hash 'type "lex-ref"
+               'scope (lex-ref-scope ref)
+               'offset (lex-ref-offset ref)
+               'symbol (symbol->string (lex-ref-symbol ref))))
+        (else (error (~a "not a ref: " ref)))))
 
 (define (aexp->json aexp)
   (match aexp
-    [`(lambda ,vars . ,body)
-     (lambda->json vars body)]
+    [`(lambda ,params ,vars . ,body)
+     (hash 'type "lambda"
+           'params (map symbol->string params)
+           'vars (map symbol->string vars)
+           'body (map exp->json body))]
     [`(quote ,x)
      (if (list? x)
          (hash 'type "quoted-list"
@@ -373,9 +449,11 @@
     [(? char?)
      (hash 'type "char"
            'val aexp)]
-    [(? symbol?)
-     (hash 'type "var"
-           'val (symbol->string aexp))]
+    [(? ref?)
+     (ref->json aexp)]
+    ;; TODO: Remove symbol?
+    ;; [(? symbol?)
+    ;;  (error "Symbol not expected here")]
     ['()
      (hash 'type "quoted-list"
            'val '())]
@@ -383,9 +461,6 @@
 
 (define (cexp->json cexp)
   (match cexp
-    ;; If lambda is an operator in an application, well, though break
-    ;; In SLIP this is also the case.
-    ;; TODO: Maybe put lambdas in evaluator as macro/native?
     [(? aexp?)
      (aexp->json cexp)]
     [`(if ,aexp ,exp1 ,exp2)
@@ -395,11 +470,8 @@
            'alternative (exp->json exp2))]
     [`(set! ,var ,aexp)
      (hash 'type "set"
-           'target (symbol->string var)
+           'target (ref->json var)
            'val (aexp->json aexp))]
-    [`(begin . ,exprs)
-     (hash 'type "begin"
-           'body (map exp->json exprs))]
     [`(,op . ,aexps)
      (hash 'type "apl"
            'operator (aexp->json op)
@@ -408,31 +480,24 @@
 
 (define (exp->json exp)
   (match exp
-    [`(let () . ,body)
-     (var-let->json body)]
-    [`(let ([,var ,cexp]) . ,body)
+    [`(let ,bindings ,vars . ,body)
      (hash 'type "let"
-           'var (symbol->string var)
-           'val (cexp->json cexp)
+           'vars (map (compose symbol->string car) bindings)
+           'vals (map (compose exp->json cadr) bindings)
+           'decls (map symbol->string vars)
            'body (map exp->json body))]
+    [`(begin . ,exprs)
+     (hash 'type "begin"
+           'body (map exp->json exprs))]
     [(? aexp?)
      (aexp->json exp)]
     [(? cexp?)
      (cexp->json exp)]
     [else (error (~a "Malformed expression: " exp))]))
 
-;; TODO: check all orders of exp lists
 (define (prog->json prog)
-  (define (helper vars exps prog)
-    (match prog
-      ['()
-       (hash 'vars (map symbol->string vars)
-             'exps (reverse exps))]
-      [(cons `(define ,var '()) rest)
-       (helper (cons var vars) exps rest)]
-      [(cons exp rest)
-       (helper vars (cons (exp->json exp) exps) rest)]))
-  (helper '() '() prog))
+  (hash 'vars (map symbol->string (car prog))
+        'exps (map exp->json (cdr prog))))
 
 ;;
 ;; Read code
@@ -446,7 +511,7 @@
       (car (list->json (list s-exp)))))
 
 (define (slip-expand exp #:json [json #f])
-  (let ([res (normalize-program exp)])
+  (let ([res (lexical-address (normalize-program exp))])
     ;;(pretty-print res)
     (if json
         (prog->json res)

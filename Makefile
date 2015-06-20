@@ -22,7 +22,7 @@ translate-jit: slipy-c
 translate-no-jit: slipy-c-nojit
 
 slipy-c: $(PYFILES)
-	$(RPYTHON) -Ojit targetslipy.py --output=slipy-jit
+	$(RPYTHON) -Ojit --gc=minimark targetslipy.py
 
 slipy-c-nojit: $(PYFILES)
-	$(RPYTHON) targetslipy.py --output=slipy-nojit
+	$(RPYTHON) targetslipy.py

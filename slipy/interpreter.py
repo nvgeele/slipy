@@ -1,6 +1,6 @@
-from slipy.AST import Application
+from slipy.AST import *
 from slipy.continuation import empty_continuation
-from slipy.environment import Env
+from slipy.environment import *
 from slipy.exceptions import EvaluationFinished
 from rpython.rlib import jit
 
@@ -15,25 +15,33 @@ driver = jit.JitDriver(reds=["env", "cont"], greens=["ast", "prev"],
 
 def initialize_global_env():
     from slipy.natives import native_dict
-    env = Env()
-    for sym, native in native_dict.iteritems():
-        env.add_var(sym, native)
-    return env
-
+    env = Env(len(native_dict))
+    for sym, tup in native_dict.iteritems():
+        offset, native = tup
+        env.set_var(0, offset, native)
+    # return env
+    set_global_env(env)
 
 def return_value_direct(value, env, cont):
     return cont.cont(value, env)
 
 
 def _interpret(ast, env, cont):
-    # from slipy.util import write
     prev = ast
     while True:
         driver.jit_merge_point(ast=ast, prev=prev,
                                env=env, cont=cont)
-        # write(str(cont.depth())+", ")
-        prev = ast
-        ast, env, cont = ast.eval(env, cont)
+        if isinstance(ast, Application):
+            prev = ast
+        t = type(ast)
+        if t is Let:
+            ast, env, cont = ast.eval(env, cont)
+        elif t is If:
+            ast, env, cont = ast.eval(env, cont)
+        elif t is Sequence:
+            ast, env, cont = ast.eval(env, cont)
+        else:
+            ast, env, cont = ast.eval(env, cont)
         if isinstance(ast, Application):
             driver.can_enter_jit(ast=ast, prev=prev,
                                  env=env, cont=cont)
@@ -47,6 +55,5 @@ def interpret_with_env(ast, env):
         return e.value
 
 
-def interpret_program(prog):
-    env = initialize_global_env()
-    return interpret_with_env(prog, env)
+def interpret_with_global(ast):
+    return interpret_with_env(ast, get_global_env())
