@@ -96,7 +96,7 @@ class Lambda(AST):
             args[i] = arg.to_string()
         vars = [None] * len(self.vars)
         for i, var in enumerate(self.vars):
-            vars[i] = var.to_string
+            vars[i] = var.to_string()
         body = [None] * len(self.body)
         for i, exp in enumerate(self.body):
             body[i] = exp.to_string()

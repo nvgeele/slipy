@@ -62,7 +62,6 @@ class SequenceContinuation(Continuation):
         self.len = len(exprs)
 
     def cont(self, val, env):
-        # TODO: Use an index instead of manipulating lists?
         if self.len - 1 == self.i:
             # from slipy.interpreter import return_value_direct
             # return return_value_direct(val, self._env, self._prev)

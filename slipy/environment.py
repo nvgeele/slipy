@@ -40,9 +40,6 @@ class Env(object):
         return val
 
     def __str__(self):
-        # TODO: re-implement me
-        # keys = " ".join(map(str, self.bindings.keys()))
-        # return "#<Env {%s} prev=%s>" % (keys, self._previous)
         return "#<env>"
 
 
