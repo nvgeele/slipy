@@ -2,6 +2,7 @@ from rpython.rlib import jit
 from slipy.continuation import *
 from slipy.environment import Env, get_global_env
 from slipy.exceptions import SlipException
+from slipy.util import zip
 from slipy.values import *
 
 
@@ -90,13 +91,18 @@ class Lambda(AST):
         return W_Closure(self.args, self.vars, env, self.body)
 
     def __str__(self):
-        # TODO: re-implement me
-        # args = [None] * len(self.args)
-        # for i, arg in enumerate(self.args):
-        #     args[i] = arg.to_string()
-        # args = " ".join(args)
-        # return "(lambda (%s) %s)" % (args, self.body.to_string())
-        return "(lambda ...)"
+        args = [None] * len(self.args)
+        for i, arg in enumerate(self.args):
+            args[i] = arg.to_string()
+        vars = [None] * len(self.vars)
+        for i, var in enumerate(self.vars):
+            vars[i] = var.to_string
+        body = [None] * len(self.body)
+        for i, exp in enumerate(self.body):
+            body[i] = exp.to_string()
+        return "(lambda (%s) (%s) %s)" % (" ".join(args),
+                                          " ".join(vars),
+                                          " ".join(body))
 
 
 # TODO: make_let_cont for jit promotion of length etc
@@ -118,14 +124,19 @@ class Let(AST):
             return self.vals[0], new_env, l_cont
 
     def __str__(self):
-        # TODO: re-implement me
-        # bs = [None] * len(self._body)
-        # for i, e in enumerate(self._body):
-        #     bs[i] = e.to_string()
-        # bs = " ".join(bs)
-        # return "(let ([%s %s]) %s)" %\
-        #        (self._sym.to_string(), self._val.to_string(), bs)
-        return "(let ...)"
+        vars = [None] * len(self.vars)
+        for i, t in enumerate(zip(self.vars, self.vals)):
+            var, val = t
+            vars[i] = "[%s %s]" % (var.to_string(), val.to_string())
+        decls = [None] * len(self.decls)
+        for i, var in enumerate(self.decls):
+            decls[i] = var.to_string()
+        body = [None] * len(self.body)
+        for i, exp in enumerate(self.body):
+            body[i] = exp.to_string()
+        return "(let (%s) (%s) %s)" % ("".join(vars),
+                                       " ".join(decls),
+                                       " ".join(body))
 
 
 class SetBang(AST):
@@ -206,9 +217,14 @@ class Program(AST):
             return self.body[0], env, cont
 
     def __str__(self):
-        # TODO: implement me
-        return "<program>"
+        vars = [None] * len(self.vars)
+        for i, var in enumerate(self.vars):
+            vars[i] = var.to_string()
+        body = [None] * len(self.body)
+        for i, exp in enumerate(self.body):
+            body[i] = exp.to_string()
 
+        return "((%s) %s)" % (" ".join(vars), " ".join(body))
 
 class Quote(AST):
     _immutable_fields_ = ["_val"]
