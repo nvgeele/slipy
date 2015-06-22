@@ -14,7 +14,7 @@
       '()
       (cons (car l) (recursive-div2 (cddr l)))))
 
-(define samples 30)
+(define samples 20)
 
 (define (mean d l)
   (/ (apply + d) l))
@@ -31,9 +31,10 @@
             (s (stddev times samples)))
         (display "Mean: ") (display m) (newline)
         (display "Stddev: ") (display s) (newline))
-      (begin (display n)(newline)
-             (let ((s (time)))
-               (recursive-div2 *ll*)
-               (do-tests (- n 1) (cons (- (time) s) times))))))
+      (let ((s (time)))
+        (recursive-div2 *ll*)
+        (let ((t (- (time) s)))
+          (display t)(newline)
+          (do-tests (- n 1) (cons t times))))))
 
 (do-tests samples '())

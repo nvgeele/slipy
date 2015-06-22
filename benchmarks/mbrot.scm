@@ -45,7 +45,7 @@
     (mbrot matrix -1.0 -0.5 0.005 n)
     (vector-ref (vector-ref matrix 0) 0)))
 
-(define samples 30)
+(define samples 20)
 
 (define (mean d l)
   (/ (apply + d) l))
@@ -62,9 +62,10 @@
             (s (stddev times samples)))
         (display "Mean: ") (display m) (newline)
         (display "Stddev: ") (display s) (newline))
-      (begin (display n)(newline)
-             (let ((s (time)))
-               (test 75)
-               (do-tests (- n 1) (cons (- (time) s) times))))))
+      (let ((s (time)))
+        (test 75)
+        (let ((t (- (time) s)))
+          (display t)(newline)
+          (do-tests (- n 1) (cons t times))))))
 
 (do-tests samples '())
